@@ -9,6 +9,17 @@ export interface ShoppingItem {
     createdAt: number;
 }
 
+export interface HistoryItem {
+    name: string;
+    category: string;
+}
+
+export interface Category {
+    id: string;
+    name: string;
+    order: number;
+}
+
 // --- Storage Interface (Adapter Pattern) ---
 interface StorageAdapter {
     getItems: () => Promise<ShoppingItem[]>;
@@ -16,8 +27,12 @@ interface StorageAdapter {
     updateItem: (id: string, updates: Partial<ShoppingItem>) => Promise<ShoppingItem>;
     deleteItem: (id: string) => Promise<void>;
 
-    getHistory: () => Promise<string[]>;
-    addToHistory: (name: string) => Promise<void>;
+    getHistory: () => Promise<HistoryItem[]>;
+    addToHistory: (name: string, category: string) => Promise<void>;
+
+    getCategories: () => Promise<Category[]>;
+    addCategory: (name: string) => Promise<Category>;
+    deleteCategory: (id: string) => Promise<void>;
 
     getWeekStartDate: () => Promise<number>;
     setWeekStartDate: (date: number) => Promise<void>;
@@ -58,12 +73,29 @@ const apiAdapter: StorageAdapter = {
         if (!res.ok) return [];
         return res.json();
     },
-    addToHistory: async (name) => {
+    addToHistory: async (name, category) => {
         await fetch('/api/history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, category }),
+        });
+    },
+    getCategories: async () => {
+        const res = await fetch('/api/categories');
+        if (!res.ok) return [];
+        return res.json();
+    },
+    addCategory: async (name) => {
+        const res = await fetch('/api/categories', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name }),
         });
+        if (!res.ok) throw new Error('Failed to add category');
+        return res.json();
+    },
+    deleteCategory: async (id) => {
+        await fetch(`/api/categories/${id}`, { method: 'DELETE' });
     },
     getWeekStartDate: async () => {
         const res = await fetch('/api/meta?key=weekStartDate');
@@ -79,8 +111,6 @@ const apiAdapter: StorageAdapter = {
         });
     },
     clearItems: async () => {
-        // We need a clear endpoint or loop delete. ideally bulk delete
-        // Using the base DELETE on /api/items to clear all
         await fetch('/api/items', { method: 'DELETE' });
     }
 }
@@ -88,38 +118,49 @@ const apiAdapter: StorageAdapter = {
 // --- Hook ---
 export function useShoppingList() {
     const [items, setItems] = useState<ShoppingItem[]>([]);
-    const [historySuggestions, setHistorySuggestions] = useState<string[]>([]);
+    const [historySuggestions, setHistorySuggestions] = useState<HistoryItem[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [weekStartDate, setWeekStartDate] = useState<number>(Date.now());
     const [isLoaded, setIsLoaded] = useState(false);
 
     const adapter = apiAdapter;
 
+    const refresh = useCallback(async () => {
+        setIsLoaded(false);
+        try {
+            const [loadedItems, loadedHistory, loadedCategories, loadedDate] = await Promise.all([
+                adapter.getItems(),
+                adapter.getHistory(),
+                adapter.getCategories(),
+                adapter.getWeekStartDate()
+            ]);
+            setItems(loadedItems);
+            setHistorySuggestions(loadedHistory);
+
+            if (loadedCategories.length === 0) {
+                setCategories([]);
+            } else {
+                setCategories(loadedCategories);
+            }
+
+            setWeekStartDate(loadedDate);
+        } catch (error) {
+            console.error('Failed to load data', error);
+        } finally {
+            setIsLoaded(true);
+        }
+    }, [adapter]);
+
     // Load initial data
     useEffect(() => {
-        const loadData = async () => {
-            try {
-                const [loadedItems, loadedHistory, loadedDate] = await Promise.all([
-                    adapter.getItems(),
-                    adapter.getHistory(),
-                    adapter.getWeekStartDate()
-                ]);
-                setItems(loadedItems);
-                setHistorySuggestions(loadedHistory);
-                setWeekStartDate(loadedDate);
-            } catch (error) {
-                console.error('Failed to load data', error);
-            } finally {
-                setIsLoaded(true);
-            }
-        };
-        loadData();
-    }, []);
+        refresh();
+    }, [refresh]);
 
-    const addItem = useCallback(async (name: string, category?: string) => {
+    const addItem = useCallback(async (name: string) => {
         const normalizedName = name.trim();
-
-        // Optimistic UI update check
+        // Check exact match case-insensitive
         const existing = items.find(i => i.name.toLowerCase() === normalizedName.toLowerCase());
+
         if (existing) {
             if (existing.completed) {
                 // Reactivate
@@ -129,8 +170,10 @@ export function useShoppingList() {
             return;
         }
 
-        // Optimistic add (with temp ID) or wait for server?
-        // Let's wait for server to get real ID to avoid complexity
+        // Auto-categorize
+        const historyItem = historySuggestions.find(h => h.name.toLowerCase() === normalizedName.toLowerCase());
+        const category = historyItem?.category || 'Uncategorized';
+
         try {
             const newItem = await adapter.addItem({
                 name: normalizedName,
@@ -141,18 +184,40 @@ export function useShoppingList() {
 
             setItems((prev) => [newItem, ...prev]);
 
-            // Update history
-            await adapter.addToHistory(name);
-            // Refresh local suggestion state - could rely on local append but let's re-fetch or append
-            setHistorySuggestions(prev => {
-                if (!prev.includes(normalizedName)) return [...prev, normalizedName].sort();
-                return prev;
-            });
+            // Update history if it's a new item (even default category)
+            if (!historyItem) {
+                await adapter.addToHistory(normalizedName, category);
+                setHistorySuggestions(prev => [...prev, { name: normalizedName, category }]);
+            }
 
         } catch (e) {
             console.error("Failed to add", e);
         }
-    }, [items]);
+    }, [items, historySuggestions, adapter]);
+
+    const updateCategory = useCallback(async (id: string, newCategory: string) => {
+        const item = items.find(i => i.id === id);
+        if (!item) return;
+
+        // Optimistic update item
+        setItems(prev => prev.map(i => i.id === id ? { ...i, category: newCategory } : i));
+
+        // Optimistic update history
+        const normalizedName = item.name.trim();
+        setHistorySuggestions(prev => {
+            const existing = prev.find(h => h.name.toLowerCase() === normalizedName.toLowerCase());
+            if (existing) {
+                return prev.map(h => h.name.toLowerCase() === normalizedName.toLowerCase() ? { ...h, category: newCategory } : h);
+            }
+            return [...prev, { name: normalizedName, category: newCategory }];
+        });
+
+        // Async persist
+        await Promise.all([
+            adapter.updateItem(id, { category: newCategory }),
+            adapter.addToHistory(normalizedName, newCategory)
+        ]);
+    }, [items, adapter]);
 
     const toggleItem = useCallback(async (id: string) => {
         const item = items.find(i => i.id === id);
@@ -166,13 +231,13 @@ export function useShoppingList() {
         );
 
         await adapter.updateItem(id, { completed: !item.completed });
-    }, [items]);
+    }, [items, adapter]);
 
     const deleteItem = useCallback(async (id: string) => {
         // Optimistic
         setItems((prev) => prev.filter((item) => item.id !== id));
         await adapter.deleteItem(id);
-    }, []);
+    }, [adapter]);
 
     const clearCompleted = useCallback(async () => {
         const completedIds = items.filter(i => i.completed).map(i => i.id);
@@ -181,7 +246,7 @@ export function useShoppingList() {
 
         // Parallel delete
         await Promise.all(completedIds.map(id => adapter.deleteItem(id)));
-    }, [items]);
+    }, [items, adapter]);
 
     const resetList = useCallback(async () => {
         if (confirm("Are you sure you want to start a new week?")) {
@@ -194,17 +259,43 @@ export function useShoppingList() {
                 adapter.setWeekStartDate(newDate)
             ]);
         }
-    }, []);
+    }, [adapter]);
+
+    // --- Category Management ---
+    const addCategory = useCallback(async (name: string) => {
+        try {
+            const newCat = await adapter.addCategory(name);
+            setCategories(prev => [...prev, newCat]);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to add category");
+        }
+    }, [adapter]);
+
+    const deleteCategory = useCallback(async (id: string) => {
+        try {
+            setCategories(prev => prev.filter(c => c.id !== id));
+            await adapter.deleteCategory(id);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to delete category");
+        }
+    }, [adapter]);
 
     return {
         items,
         historySuggestions,
+        categories,
         weekStartDate,
         addItem,
         toggleItem,
+        updateCategory,
         deleteItem,
         clearCompleted,
         resetList,
+        refresh,
+        addCategory,
+        deleteCategory,
         isLoaded
     };
 }

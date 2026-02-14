@@ -58,6 +58,9 @@ test.describe('Weekly Shopping List', () => {
         await input.fill('Eggs');
         await addButton.click();
 
+        // Wait for first item to appear
+        await expect(page.getByText('Eggs', { exact: true })).toBeVisible();
+
         // Try adding "eggs" (lowercase)
         await input.fill('eggs');
         await addButton.click();
@@ -71,36 +74,130 @@ test.describe('Weekly Shopping List', () => {
         const input = page.getByPlaceholder('Add item (e.g., Milk)');
         const addButton = page.getByRole('button', { name: 'Add' });
 
-        // Add item to seed history
+        // Add "Flour"
+        // Wait for history API call to ensure it's saved before reload
+        const historyResponsePromise = page.waitForResponse(resp => resp.url().includes('/api/history') && resp.status() === 200);
+
         await input.fill('Flour');
         await addButton.click();
 
-        // Reload to ensure history is saved and page state is fresh
+        // Wait for UI to update AND history to be saved
+        await expect(page.getByText('Flour')).toBeVisible();
+        await historyResponsePromise;
+
+        // Reload to get fresh state (including history from server)
         await page.reload();
 
-        // Type 'F' and check for suggestion
-        await input.fill('F');
-
-        // Note: testing datalist visibility is tricky in some browsers/drivers, 
-        // but we can check if the datalist option exists in the DOM.
+        // Check datalist
+        // Note: Datalist options are hidden elements, but we can check if the datalist option exists in the DOM.
         const option = page.locator('datalist#shopping-history option[value="Flour"]');
         await expect(option).toHaveAttribute('value', 'Flour');
     });
 
     test('should start a new week', async ({ page }) => {
+        const newWeekButton = page.getByRole('button', { name: 'New Week' });
+
+        // Add an item first so we can see it clear
         const input = page.getByPlaceholder('Add item (e.g., Milk)');
-        await input.fill('Grapes');
-        await page.getByRole('button', { name: 'Add' }).click();
+        const addButton = page.getByRole('button', { name: 'Add' });
+        await input.fill('Old Item');
+        await addButton.click();
+        await expect(page.getByText('Old Item')).toBeVisible();
 
         // Handle confirm dialog
         page.on('dialog', dialog => dialog.accept());
 
-        await page.getByText('New Week').click();
+        // Wait for meta update
+        const metaResponsePromise = page.waitForResponse(resp => resp.url().includes('/api/meta') && resp.status() === 200);
 
-        await expect(page.getByText('Grapes')).not.toBeVisible();
+        await newWeekButton.click();
 
-        // Check if date updated (hard to test exact date string without mocking, 
+        await metaResponsePromise;
+
+        // Verify items cleared
+        await expect(page.getByText('Old Item')).not.toBeVisible();
+
+        // Verify date updated (hard to test exact date string without mocking, 
         // but element should be visible)
         await expect(page.getByText(/Week of/)).toBeVisible();
+    });
+
+    test('should categorize items dynamically', async ({ page }) => {
+        const uniqueName = `Dragonfruit-${Date.now()}`;
+        const input = page.getByPlaceholder('Add item (e.g., Milk)');
+        const addButton = page.getByRole('button', { name: 'Add' });
+
+        // 1. Add new item - should be Uncategorized
+        await input.fill(uniqueName);
+        await addButton.click();
+
+        // Check it's under Uncategorized
+        await expect(page.getByRole('heading', { name: 'Uncategorized' })).toBeVisible();
+        await expect(page.getByText(uniqueName)).toBeVisible();
+
+        // 2. Change category to something other than Uncategorized
+        // Find the select associated with item
+        const itemRow = page.locator('.group', { hasText: uniqueName });
+        const categorySelect = itemRow.locator('select');
+
+        // Discover available options
+        const options = await categorySelect.locator('option').allInnerTexts();
+        const categoryToSelect = options.find(o => o !== 'Uncategorized') || 'Produce';
+
+        // Wait for update request
+        const updateResponsePromise = page.waitForResponse(resp => resp.url().includes('/api/items') && resp.request().method() === 'PUT');
+
+        await categorySelect.selectOption(categoryToSelect);
+
+        const response = await updateResponsePromise;
+        expect(response.status()).toBe(200);
+
+        // 3. Verify it moved to selected category header
+        await expect(page.getByRole('heading', { name: categoryToSelect })).toBeVisible();
+
+        // 4. Reload to verify persistence
+        await page.reload();
+        await expect(page.getByRole('heading', { name: categoryToSelect })).toBeVisible();
+        await expect(page.getByText(uniqueName)).toBeVisible();
+
+        // 5. Add same item again (simulate next week or duplicate check)
+        // First delete it to allow re-adding
+        const deleteBtn = itemRow.getByRole('button', { name: 'Delete item' });
+        await deleteBtn.click();
+        await expect(page.getByText(uniqueName)).not.toBeVisible();
+
+        // Add again
+        await input.fill(uniqueName);
+        await addButton.click();
+
+        // 6. Should be automatically in the same category now (Learned!)
+        await expect(page.getByRole('heading', { name: categoryToSelect })).toBeVisible();
+        const newItemRow = page.locator('.group', { hasText: uniqueName });
+        await expect(newItemRow.locator('select')).toHaveValue(categoryToSelect);
+    });
+
+    test('should refresh the list', async ({ page, request }) => {
+        const uniqueName = `SecretItem-${Date.now()}`;
+
+        // 1. Add item via API directly (simulating another user or device)
+        const response = await request.post('/api/items', {
+            data: {
+                name: uniqueName,
+                completed: false,
+                category: 'Other',
+                createdAt: Date.now()
+            }
+        });
+        expect(response.ok()).toBeTruthy();
+
+        // 2. Item should NOT be visible yet (we haven't refreshed)
+        await expect(page.getByText(uniqueName)).not.toBeVisible();
+
+        // 3. Click Refresh
+        const refreshButton = page.getByRole('button', { name: 'Refresh list' });
+        await refreshButton.click();
+
+        // 4. Item SHOULD be visible now
+        await expect(page.getByText(uniqueName)).toBeVisible();
     });
 });

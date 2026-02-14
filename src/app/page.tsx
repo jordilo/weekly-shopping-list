@@ -3,10 +3,17 @@
 import { AddItemForm } from '@/components/add-item-form';
 import { ShoppingList } from '@/components/shopping-list';
 import { useShoppingList } from '@/lib/hooks/use-shopping-list';
-import { ShoppingBag, Trash2 } from 'lucide-react';
+import { ShoppingBag, RefreshCw, Settings } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Home() {
-  const { items, historySuggestions, weekStartDate, addItem, toggleItem, deleteItem, clearCompleted, resetList, isLoaded } = useShoppingList();
+  const { items, historySuggestions, weekStartDate, categories, addItem, toggleItem, deleteItem,
+    clearCompleted,
+    resetList,
+    updateCategory,
+    refresh,
+    isLoaded
+  } = useShoppingList();
 
   if (!isLoaded) {
     return <div className="flex h-screen items-center justify-center">Loading...</div>;
@@ -30,7 +37,23 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="mt-4 sm:mt-0 flex gap-2 justify-center">
+          <div className="mt-4 sm:mt-0 flex gap-2 justify-center items-center">
+            <button
+              onClick={refresh}
+              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+              aria-label="Refresh list"
+              title="Refresh list"
+            >
+              <RefreshCw size={20} />
+            </button>
+            <Link
+              href="/categories"
+              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+              aria-label="Manage Categories"
+              title="Manage Categories"
+            >
+              <Settings size={20} />
+            </Link>
             {items.some(i => i.completed) && (
               <button
                 onClick={clearCompleted}
@@ -56,8 +79,10 @@ export default function Home() {
           <div className="w-full">
             <ShoppingList
               items={items}
+              categories={categories}
               onToggle={toggleItem}
               onDelete={deleteItem}
+              onUpdateCategory={updateCategory}
             />
           </div>
         </div>

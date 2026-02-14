@@ -1,4 +1,4 @@
-import mongoose, { Schema, model, models } from 'mongoose';
+import { Schema, model, models } from 'mongoose';
 
 // --- Item Model ---
 const ItemSchema = new Schema({
@@ -14,6 +14,7 @@ export const Item = models.Item || model('Item', ItemSchema);
 // --- History Model ---
 const HistorySchema = new Schema({
     name: { type: String, required: true, unique: true },
+    category: { type: String }, // Learned category
 });
 
 export const History = models.History || model('History', HistorySchema);
@@ -26,3 +27,11 @@ const MetaSchema = new Schema({
 });
 
 export const Meta = models.Meta || model('Meta', MetaSchema);
+
+// --- Category Model ---
+const CategorySchema = new Schema({
+    name: { type: String, required: true, unique: true },
+    order: { type: Number, default: 0 },
+});
+
+export const Category = models.Category || model('Category', CategorySchema);

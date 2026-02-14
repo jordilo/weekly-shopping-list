@@ -36,8 +36,13 @@ Create a "Week by Week" shopping list application for a couple. The app will all
 - **New**: Track `weekStartDate`.
 
 #### [MODIFY] [`components/add-item-form.tsx`](file:///d:/code/weekly-shopping-list/src/components/add-item-form.tsx)
-- **New**: Accept `suggestions` prop.
-- **New**: Implement `<datalist>` for native autocomplete.
+- **Revert**: Remove Category selector.
+- **Logic**: Input only name. Category defaults to History match or "Uncategorized".
+
+#### [MODIFY] [`components/shopping-list.tsx`](file:///d:/code/weekly-shopping-list/src/components/shopping-list.tsx)
+- **Modify**: Group items by Category.
+- **New**: Add UI to edit item category (e.g., clicking a "Tag" icon or the item details).
+- **Logic**: changing category updates History.
 
 #### [MODIFY] [`app/page.tsx`](file:///d:/code/weekly-shopping-list/src/app/page.tsx)
 - **New**: Display current week start date in header.
@@ -61,6 +66,7 @@ Create a "Week by Week" shopping list application for a couple. The app will all
 - Delete "Milk".
 - **New**: Type "M" in the input and verify "Milk" appears as a suggestion.
 - **New**: Verify header shows "Week of [Date]". Click "New Week" and verify date updates.
+- **New**: Add "Apple" with category "Produce". Verify it appears under "Produce" header.
 
 ### Testing Policy
 > [!IMPORTANT]
@@ -77,7 +83,7 @@ Create a "Week by Week" shopping list application for a couple. The app will all
 
 ### Data Models
 - **Item**: `{ name: String, completed: Boolean, category: String, createdAt: Date }`
-- **History**: `{ name: String }` (Unique index on name)
+- **History**: `{ name: String, category: String }` (Unique index on name; stores "default" category for an item)
 - **Meta**: `{ key: String, value: Mixed }` (For `weekStartDate`)
 
 ### Components
@@ -104,3 +110,31 @@ Create a "Week by Week" shopping list application for a couple. The app will all
 #### [MODIFY] [`lib/hooks/use-shopping-list.ts`](file:///d:/code/weekly-shopping-list/src/lib/hooks/use-shopping-list.ts)
 - **Modify**: Create `apiAdapter` implementing `StorageAdapter`.
 - **Modify**: Switch default adapter from `localStorageAdapter` to `apiAdapter`.
+
+### Customizable Categories
+
+#### [NEW] [`lib/models.ts`](file:///d:/code/weekly-shopping-list/src/lib/models.ts)
+- **Category**: `{ name: String, order: Number }`
+
+#### [NEW] [`app/api/categories/route.ts`](file:///d:/code/weekly-shopping-list/src/app/api/categories/route.ts)
+- GET: Fetch all categories
+- POST: Create category
+- DELETE: Remove category
+- PUT: Update category
+
+#### [MODIFY] [`lib/hooks/use-shopping-list.ts`](file:///d:/code/weekly-shopping-list/src/lib/hooks/use-shopping-list.ts)
+- **Modify**: Add `categories` state and methods (`addCategory`, `deleteCategory`, `updateCategory`) to `StorageAdapter`.
+
+#### [NEW] [`components/category-manager.tsx`](file:///d:/code/weekly-shopping-list/src/components/category-manager.tsx)
+- UI to list, add, edit, and delete categories.
+- Accessible via a modal or dedicated page.
+
+#### [MODIFY] [`app/page.tsx`](file:///d:/code/weekly-shopping-list/src/app/page.tsx)
+- Add "Manage Categories" button/link.
+- Render `CategoryManager` (e.g., in a Dialog).
+
+#### [MODIFY] [`components/shopping-list.tsx`](file:///d:/code/weekly-shopping-list/src/components/shopping-list.tsx)
+- Use dynamic categories instead of hardcoded `CATEGORIES` constant.
+
+#### [MODIFY] [`components/add-item-form.tsx`](file:///d:/code/weekly-shopping-list/src/components/add-item-form.tsx)
+- Use dynamic categories for suggestions/validation if needed (though it's currently free-text or history based).
