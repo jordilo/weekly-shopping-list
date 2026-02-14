@@ -83,8 +83,6 @@ Create a "Week by Week" shopping list application for a couple. The app will all
 
 ### Data Models
 - **Item**: `{ name: String, completed: Boolean, category: String, createdAt: Date }`
-### Data Models
-- **Item**: `{ name: String, completed: Boolean, category: String, createdAt: Date }`
 - **History**: `{ name: String, category: String }` (Unique index on name; stores "default" category for an item)
 - **Meta**: `{ key: String, value: Mixed }` (For `weekStartDate`)
 

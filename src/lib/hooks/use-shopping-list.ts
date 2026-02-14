@@ -142,30 +142,7 @@ export function useShoppingList() {
             setItems(loadedItems);
             setHistorySuggestions(loadedHistory);
 
-            // If no categories in DB, use defaults, but don't save them to DB automatically yet 
-            // to keep it clean. Or we can just use defaults in the UI if list is empty.
-            // Better: If empty, we map defaults to a Category structure without IDs (or fake IDs)
-            // But strict ID requirement for management might be tricky.
-            // Let's rely on what's in DB. If DB is empty, UI should probably show defaults or 
-            // we should seed DB.
-            // Strategy: return loaded categories. If empty, the UI will just show "Uncategorized".
-            // WAIT, the requirement implies we REPLACE the hardcoded list.
-            // If I return empty, existing items might fall into Uncategorized.
-            // Let's seed the DB if empty? Or just let the user manage it.
-            // For MVP validation, I'll seed if empty locally in state, but ideally we seed DB.
-            // For now, let's just use what's returned.
-            // ACTUALLY, to preserve existing behavior for the user, if DB returns empty, 
-            // we should probably populate it with defaults on first run, OR just return defaults in State.
-
             if (loadedCategories.length === 0) {
-                // Option: Seed defaults?
-                // Let's just set defaults in state with fake IDs to start, or rely on UI to handle empty.
-                // But wait, the previous code had constant CATEGORIES.
-                // Let's seed the database if it's empty so the user feels like nothing broke.
-                // I will do this in the component or a specialized init useEffect, but for now
-                // let's just set the state.
-                // Actually, if we use defaults, they won't have IDs for deleting.
-                // Providing a "Seed Defaults" button in UI might be better.
                 setCategories([]);
             } else {
                 setCategories(loadedCategories);
@@ -309,7 +286,6 @@ export function useShoppingList() {
             alert("Failed to delete category");
         }
     }, []);
-
     return {
         items,
         historySuggestions,
