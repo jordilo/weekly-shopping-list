@@ -100,15 +100,31 @@ export function useShoppingList() {
     }, [items, isLoaded]);
 
     const addItem = useCallback(async (name: string, category?: string) => {
-        const newItem: ShoppingItem = {
-            id: crypto.randomUUID(),
-            name: name.trim(),
-            completed: false,
-            category,
-            createdAt: Date.now(),
-        };
+        const normalizedName = name.trim();
 
-        setItems((prev) => [newItem, ...prev]);
+        setItems((prev) => {
+            // Case-insensitive check
+            const existingItem = prev.find((item) => item.name.toLowerCase() === normalizedName.toLowerCase());
+
+            if (existingItem) {
+                // If exists and completed, reactivate it
+                if (existingItem.completed) {
+                    return prev.map(i => i.id === existingItem.id ? { ...i, completed: false } : i);
+                }
+                // If exists and active, do nothing (prevent duplicate)
+                return prev;
+            }
+
+            const newItem: ShoppingItem = {
+                id: crypto.randomUUID(),
+                name: normalizedName,
+                completed: false,
+                category,
+                createdAt: Date.now(),
+            };
+
+            return [newItem, ...prev];
+        });
 
         // Update history
         await localStorageAdapter.addToHistory(name);
