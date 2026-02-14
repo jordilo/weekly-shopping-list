@@ -5,9 +5,23 @@ interface ShoppingListProps {
     items: ShoppingItem[];
     onToggle: (id: string) => void;
     onDelete: (id: string) => void;
+    onCategoryChange: (id: string, newCategory: string) => void;
 }
 
-export function ShoppingList({ items, onToggle, onDelete }: ShoppingListProps) {
+const CATEGORIES = [
+    'Produce',
+    'Dairy',
+    'Meat',
+    'Bakery',
+    'Pantry',
+    'Frozen',
+    'Beverages',
+    'Household',
+    'Other',
+    'Uncategorized'
+];
+
+export function ShoppingList({ items, onToggle, onDelete, onCategoryChange }: ShoppingListProps) {
     if (items.length === 0) {
         return (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
@@ -23,14 +37,29 @@ export function ShoppingList({ items, onToggle, onDelete }: ShoppingListProps) {
     return (
         <div className="space-y-6 w-full max-w-md">
             {/* Active Items */}
-            <div className="space-y-2">
-                {activeItems.map((item) => (
-                    <ShoppingListItem
-                        key={item.id}
-                        item={item}
-                        onToggle={onToggle}
-                        onDelete={onDelete}
-                    />
+            <div className="space-y-6">
+                {Object.entries(
+                    activeItems.reduce((acc, item) => {
+                        const cat = item.category || 'Uncategorized';
+                        if (!acc[cat]) acc[cat] = [];
+                        acc[cat].push(item);
+                        return acc;
+                    }, {} as Record<string, typeof activeItems>)
+                ).map(([category, items]) => (
+                    <div key={category} className="space-y-2">
+                        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider pl-1">
+                            {category}
+                        </h3>
+                        {items.map((item) => (
+                            <ShoppingListItem
+                                key={item.id}
+                                item={item}
+                                onToggle={onToggle}
+                                onDelete={onDelete}
+                                onCategoryChange={onCategoryChange}
+                            />
+                        ))}
+                    </div>
                 ))}
             </div>
 
@@ -47,6 +76,7 @@ export function ShoppingList({ items, onToggle, onDelete }: ShoppingListProps) {
                                 item={item}
                                 onToggle={onToggle}
                                 onDelete={onDelete}
+                                onCategoryChange={onCategoryChange}
                             />
                         ))}
                     </div>
@@ -60,21 +90,23 @@ function ShoppingListItem({
     item,
     onToggle,
     onDelete,
+    onCategoryChange,
 }: {
     item: ShoppingItem;
     onToggle: (id: string) => void;
     onDelete: (id: string) => void;
+    onCategoryChange: (id: string, newCategory: string) => void;
 }) {
     return (
         <div
-            className={`group flex items-center justify-between p-3 rounded-lg border transition-all ${item.completed
-                    ? 'bg-gray-50 border-gray-200 dark:bg-gray-900/50 dark:border-gray-800'
-                    : 'bg-white border-gray-200 shadow-sm hover:border-blue-300 dark:bg-gray-800 dark:border-gray-700'
+            className={`group flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border transition-all gap-2 ${item.completed
+                ? 'bg-gray-50 border-gray-200 dark:bg-gray-900/50 dark:border-gray-800'
+                : 'bg-white border-gray-200 shadow-sm hover:border-blue-300 dark:bg-gray-800 dark:border-gray-700'
                 }`}
         >
             <button
                 onClick={() => onToggle(item.id)}
-                className="flex items-center gap-3 flex-1 text-left"
+                className="flex items-center gap-3 flex-1 text-left w-full"
             >
                 <span
                     className={`${item.completed ? 'text-green-500' : 'text-gray-400 group-hover:text-blue-500'
@@ -84,21 +116,34 @@ function ShoppingListItem({
                 </span>
                 <span
                     className={`text-base font-medium ${item.completed
-                            ? 'text-gray-400 line-through decoration-gray-300'
-                            : 'text-gray-900 dark:text-gray-100'
+                        ? 'text-gray-400 line-through decoration-gray-300'
+                        : 'text-gray-900 dark:text-gray-100'
                         }`}
                 >
                     {item.name}
                 </span>
             </button>
 
-            <button
-                onClick={() => onDelete(item.id)}
-                className="ml-2 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                aria-label="Delete item"
-            >
-                <Trash2 size={18} />
-            </button>
+            <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto pl-9 sm:pl-0">
+                <select
+                    value={item.category || 'Uncategorized'}
+                    onChange={(e) => onCategoryChange(item.id, e.target.value)}
+                    className="text-xs px-2 py-1 rounded border border-gray-200 bg-gray-50 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-[120px]"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {CATEGORIES.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                </select>
+
+                <button
+                    onClick={() => onDelete(item.id)}
+                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
+                    aria-label="Delete item"
+                >
+                    <Trash2 size={18} />
+                </button>
+            </div>
         </div>
     );
 }

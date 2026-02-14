@@ -9,6 +9,11 @@ export interface ShoppingItem {
     createdAt: number;
 }
 
+export interface HistoryItem {
+    name: string;
+    category: string;
+}
+
 // --- Storage Interface (Adapter Pattern) ---
 interface StorageAdapter {
     getItems: () => Promise<ShoppingItem[]>;
@@ -16,8 +21,8 @@ interface StorageAdapter {
     updateItem: (id: string, updates: Partial<ShoppingItem>) => Promise<ShoppingItem>;
     deleteItem: (id: string) => Promise<void>;
 
-    getHistory: () => Promise<string[]>;
-    addToHistory: (name: string) => Promise<void>;
+    getHistory: () => Promise<HistoryItem[]>;
+    addToHistory: (name: string, category: string) => Promise<void>;
 
     getWeekStartDate: () => Promise<number>;
     setWeekStartDate: (date: number) => Promise<void>;
@@ -58,11 +63,11 @@ const apiAdapter: StorageAdapter = {
         if (!res.ok) return [];
         return res.json();
     },
-    addToHistory: async (name) => {
+    addToHistory: async (name, category) => {
         await fetch('/api/history', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name }),
+            body: JSON.stringify({ name, category }),
         });
     },
     getWeekStartDate: async () => {
@@ -79,8 +84,6 @@ const apiAdapter: StorageAdapter = {
         });
     },
     clearItems: async () => {
-        // We need a clear endpoint or loop delete. ideally bulk delete
-        // Using the base DELETE on /api/items to clear all
         await fetch('/api/items', { method: 'DELETE' });
     }
 }
@@ -88,7 +91,7 @@ const apiAdapter: StorageAdapter = {
 // --- Hook ---
 export function useShoppingList() {
     const [items, setItems] = useState<ShoppingItem[]>([]);
-    const [historySuggestions, setHistorySuggestions] = useState<string[]>([]);
+    const [historySuggestions, setHistorySuggestions] = useState<HistoryItem[]>([]);
     const [weekStartDate, setWeekStartDate] = useState<number>(Date.now());
     const [isLoaded, setIsLoaded] = useState(false);
 
@@ -115,11 +118,11 @@ export function useShoppingList() {
         loadData();
     }, []);
 
-    const addItem = useCallback(async (name: string, category?: string) => {
+    const addItem = useCallback(async (name: string) => {
         const normalizedName = name.trim();
-
-        // Optimistic UI update check
+        // Check exact match case-insensitive
         const existing = items.find(i => i.name.toLowerCase() === normalizedName.toLowerCase());
+
         if (existing) {
             if (existing.completed) {
                 // Reactivate
@@ -129,8 +132,10 @@ export function useShoppingList() {
             return;
         }
 
-        // Optimistic add (with temp ID) or wait for server?
-        // Let's wait for server to get real ID to avoid complexity
+        // Auto-categorize
+        const historyItem = historySuggestions.find(h => h.name.toLowerCase() === normalizedName.toLowerCase());
+        const category = historyItem?.category || 'Uncategorized';
+
         try {
             const newItem = await adapter.addItem({
                 name: normalizedName,
@@ -141,17 +146,39 @@ export function useShoppingList() {
 
             setItems((prev) => [newItem, ...prev]);
 
-            // Update history
-            await adapter.addToHistory(name);
-            // Refresh local suggestion state - could rely on local append but let's re-fetch or append
-            setHistorySuggestions(prev => {
-                if (!prev.includes(normalizedName)) return [...prev, normalizedName].sort();
-                return prev;
-            });
+            // Update history if it's a new item (even default category)
+            if (!historyItem) {
+                await adapter.addToHistory(normalizedName, category);
+                setHistorySuggestions(prev => [...prev, { name: normalizedName, category }]);
+            }
 
         } catch (e) {
             console.error("Failed to add", e);
         }
+    }, [items, historySuggestions]);
+
+    const updateCategory = useCallback(async (id: string, newCategory: string) => {
+        const item = items.find(i => i.id === id);
+        if (!item) return;
+
+        // Optimistic update item
+        setItems(prev => prev.map(i => i.id === id ? { ...i, category: newCategory } : i));
+
+        // Optimistic update history
+        const normalizedName = item.name.trim();
+        setHistorySuggestions(prev => {
+            const existing = prev.find(h => h.name.toLowerCase() === normalizedName.toLowerCase());
+            if (existing) {
+                return prev.map(h => h.name.toLowerCase() === normalizedName.toLowerCase() ? { ...h, category: newCategory } : h);
+            }
+            return [...prev, { name: normalizedName, category: newCategory }];
+        });
+
+        // Async persist
+        await Promise.all([
+            adapter.updateItem(id, { category: newCategory }),
+            adapter.addToHistory(normalizedName, newCategory)
+        ]);
     }, [items]);
 
     const toggleItem = useCallback(async (id: string) => {
@@ -202,6 +229,7 @@ export function useShoppingList() {
         weekStartDate,
         addItem,
         toggleItem,
+        updateCategory,
         deleteItem,
         clearCompleted,
         resetList,

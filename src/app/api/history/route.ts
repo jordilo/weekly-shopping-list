@@ -6,7 +6,8 @@ export async function GET() {
     await dbConnect();
     try {
         const history = await History.find({}).sort({ name: 1 });
-        return NextResponse.json(history.map(h => h.name));
+        // Return objects { name, category }
+        return NextResponse.json(history.map(h => ({ name: h.name, category: h.category })));
     } catch (error) {
         return NextResponse.json({ error: 'Failed to fetch history' }, { status: 500 });
     }
@@ -15,12 +16,13 @@ export async function GET() {
 export async function POST(request: Request) {
     await dbConnect();
     try {
-        const { name } = await request.json();
+        const { name, category } = await request.json();
         // Use upsert to prevent duplicates/errors
         if (name) {
+            // Always update category to the latest one used
             await History.updateOne(
                 { name: name },
-                { $setOnInsert: { name: name } },
+                { $set: { name: name, category: category } },
                 { upsert: true }
             );
         }

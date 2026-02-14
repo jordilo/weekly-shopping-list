@@ -6,7 +6,12 @@ import { useShoppingList } from '@/lib/hooks/use-shopping-list';
 import { ShoppingBag, Trash2 } from 'lucide-react';
 
 export default function Home() {
-  const { items, historySuggestions, weekStartDate, addItem, toggleItem, deleteItem, clearCompleted, resetList, isLoaded } = useShoppingList();
+  const { items, historySuggestions, weekStartDate, addItem, toggleItem, deleteItem,
+    clearCompleted,
+    resetList,
+    updateCategory,
+    isLoaded
+  } = useShoppingList();
 
   if (!isLoaded) {
     return <div className="flex h-screen items-center justify-center">Loading...</div>;
@@ -58,6 +63,7 @@ export default function Home() {
               items={items}
               onToggle={toggleItem}
               onDelete={deleteItem}
+              onCategoryChange={updateCategory}
             />
           </div>
         </div>

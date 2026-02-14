@@ -58,6 +58,9 @@ test.describe('Weekly Shopping List', () => {
         await input.fill('Eggs');
         await addButton.click();
 
+        // Wait for first item to appear
+        await expect(page.getByText('Eggs', { exact: true })).toBeVisible();
+
         // Try adding "eggs" (lowercase)
         await input.fill('eggs');
         await addButton.click();
@@ -71,36 +74,107 @@ test.describe('Weekly Shopping List', () => {
         const input = page.getByPlaceholder('Add item (e.g., Milk)');
         const addButton = page.getByRole('button', { name: 'Add' });
 
-        // Add item to seed history
+        // Add "Flour"
+        // Wait for history API call to ensure it's saved before reload
+        const historyResponsePromise = page.waitForResponse(resp => resp.url().includes('/api/history') && resp.status() === 200);
+
         await input.fill('Flour');
         await addButton.click();
 
-        // Reload to ensure history is saved and page state is fresh
+        // Wait for UI to update AND history to be saved
+        await expect(page.getByText('Flour')).toBeVisible();
+        await historyResponsePromise;
+
+        // Reload to get fresh state (including history from server)
         await page.reload();
 
-        // Type 'F' and check for suggestion
-        await input.fill('F');
-
-        // Note: testing datalist visibility is tricky in some browsers/drivers, 
-        // but we can check if the datalist option exists in the DOM.
+        // Check datalist
+        // Note: Datalist options are hidden elements, but we can check if the datalist option exists in the DOM.
         const option = page.locator('datalist#shopping-history option[value="Flour"]');
         await expect(option).toHaveAttribute('value', 'Flour');
     });
 
     test('should start a new week', async ({ page }) => {
+        const newWeekButton = page.getByRole('button', { name: 'New Week' });
+
+        // Add an item first so we can see it clear
         const input = page.getByPlaceholder('Add item (e.g., Milk)');
-        await input.fill('Grapes');
-        await page.getByRole('button', { name: 'Add' }).click();
+        const addButton = page.getByRole('button', { name: 'Add' });
+        await input.fill('Old Item');
+        await addButton.click();
+        await expect(page.getByText('Old Item')).toBeVisible();
 
         // Handle confirm dialog
         page.on('dialog', dialog => dialog.accept());
 
-        await page.getByText('New Week').click();
+        // Wait for meta update
+        const metaResponsePromise = page.waitForResponse(resp => resp.url().includes('/api/meta') && resp.status() === 200);
 
-        await expect(page.getByText('Grapes')).not.toBeVisible();
+        await newWeekButton.click();
 
-        // Check if date updated (hard to test exact date string without mocking, 
+        await metaResponsePromise;
+
+        // Verify items cleared
+        await expect(page.getByText('Old Item')).not.toBeVisible();
+
+        // Verify date updated (hard to test exact date string without mocking, 
         // but element should be visible)
         await expect(page.getByText(/Week of/)).toBeVisible();
+    });
+
+    test('should categorize items dynamically', async ({ page }) => {
+        const uniqueName = `Dragonfruit-${Date.now()}`;
+        const input = page.getByPlaceholder('Add item (e.g., Milk)');
+        const addButton = page.getByRole('button', { name: 'Add' });
+
+        // 1. Add new item - should be Uncategorized
+        await input.fill(uniqueName);
+        await addButton.click();
+
+        // Check it's under Uncategorized
+        await expect(page.getByRole('heading', { name: 'Uncategorized' })).toBeVisible();
+        await expect(page.getByText(uniqueName)).toBeVisible();
+
+        // 2. Change category to "Produce"
+        // Find the select associated with item
+        const itemRow = page.locator('.group', { hasText: uniqueName });
+        const categorySelect = itemRow.locator('select');
+
+        // Wait for update request
+        const updateResponsePromise = page.waitForResponse(resp => resp.url().includes('/api/items') && resp.request().method() === 'PUT');
+
+        await categorySelect.selectOption('Produce');
+
+        const response = await updateResponsePromise;
+        expect(response.status()).toBe(200);
+
+        // 3. Verify it moved to Produce header
+        await expect(page.getByRole('heading', { name: 'Produce' })).toBeVisible();
+
+        // 4. Reload to verify persistence
+        await page.reload();
+        await expect(page.getByRole('heading', { name: 'Produce' })).toBeVisible();
+        await expect(page.getByText(uniqueName)).toBeVisible();
+
+        // 5. Add same item again (simulate next week or duplicate check)
+        // First delete it to allow re-adding if we have duplicate check
+        const deleteBtn = itemRow.getByRole('button', { name: 'Delete item' });
+        await deleteBtn.click();
+        await expect(page.getByText(uniqueName)).not.toBeVisible();
+
+        // Add again
+        await input.fill(uniqueName);
+        await addButton.click();
+
+        // 6. Should be automatically in "Produce" now (Learned!)
+        await expect(page.getByRole('heading', { name: 'Produce' })).toBeVisible();
+        // Use first() if there are multiple Uncategorized headers (unlikely but safe) or check count 0 if possible
+        // But simplest is check the item is NOT under Uncategorized.
+        // However, if we have other Uncategorized items, the header might still be visible.
+        // So we should check the ITEM is under Produce.
+        // The previous expect checks Produce header is visible.
+        // We can also check that the item row's select has value 'Produce'
+        const newItemRow = page.locator('.group', { hasText: uniqueName });
+        await expect(newItemRow.locator('select')).toHaveValue('Produce');
     });
 });

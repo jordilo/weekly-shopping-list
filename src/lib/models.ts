@@ -14,6 +14,7 @@ export const Item = models.Item || model('Item', ItemSchema);
 // --- History Model ---
 const HistorySchema = new Schema({
     name: { type: String, required: true, unique: true },
+    category: { type: String }, // Learned category
 });
 
 export const History = models.History || model('History', HistorySchema);
