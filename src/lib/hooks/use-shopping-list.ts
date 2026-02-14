@@ -97,26 +97,28 @@ export function useShoppingList() {
 
     const adapter = apiAdapter;
 
+    const refresh = useCallback(async () => {
+        setIsLoaded(false);
+        try {
+            const [loadedItems, loadedHistory, loadedDate] = await Promise.all([
+                adapter.getItems(),
+                adapter.getHistory(),
+                adapter.getWeekStartDate()
+            ]);
+            setItems(loadedItems);
+            setHistorySuggestions(loadedHistory);
+            setWeekStartDate(loadedDate);
+        } catch (error) {
+            console.error('Failed to load data', error);
+        } finally {
+            setIsLoaded(true);
+        }
+    }, []);
+
     // Load initial data
     useEffect(() => {
-        const loadData = async () => {
-            try {
-                const [loadedItems, loadedHistory, loadedDate] = await Promise.all([
-                    adapter.getItems(),
-                    adapter.getHistory(),
-                    adapter.getWeekStartDate()
-                ]);
-                setItems(loadedItems);
-                setHistorySuggestions(loadedHistory);
-                setWeekStartDate(loadedDate);
-            } catch (error) {
-                console.error('Failed to load data', error);
-            } finally {
-                setIsLoaded(true);
-            }
-        };
-        loadData();
-    }, []);
+        refresh();
+    }, [refresh]);
 
     const addItem = useCallback(async (name: string) => {
         const normalizedName = name.trim();
@@ -233,6 +235,7 @@ export function useShoppingList() {
         deleteItem,
         clearCompleted,
         resetList,
+        refresh,
         isLoaded
     };
 }

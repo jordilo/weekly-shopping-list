@@ -177,4 +177,29 @@ test.describe('Weekly Shopping List', () => {
         const newItemRow = page.locator('.group', { hasText: uniqueName });
         await expect(newItemRow.locator('select')).toHaveValue('Produce');
     });
+
+    test('should refresh the list', async ({ page, request }) => {
+        const uniqueName = `SecretItem-${Date.now()}`;
+
+        // 1. Add item via API directly (simulating another user or device)
+        const response = await request.post('/api/items', {
+            data: {
+                name: uniqueName,
+                completed: false,
+                category: 'Other',
+                createdAt: Date.now()
+            }
+        });
+        expect(response.ok()).toBeTruthy();
+
+        // 2. Item should NOT be visible yet (we haven't refreshed)
+        await expect(page.getByText(uniqueName)).not.toBeVisible();
+
+        // 3. Click Refresh
+        const refreshButton = page.getByRole('button', { name: 'Refresh list' });
+        await refreshButton.click();
+
+        // 4. Item SHOULD be visible now
+        await expect(page.getByText(uniqueName)).toBeVisible();
+    });
 });

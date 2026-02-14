@@ -3,13 +3,14 @@
 import { AddItemForm } from '@/components/add-item-form';
 import { ShoppingList } from '@/components/shopping-list';
 import { useShoppingList } from '@/lib/hooks/use-shopping-list';
-import { ShoppingBag, Trash2 } from 'lucide-react';
+import { ShoppingBag, Trash2, RefreshCw } from 'lucide-react';
 
 export default function Home() {
   const { items, historySuggestions, weekStartDate, addItem, toggleItem, deleteItem,
     clearCompleted,
     resetList,
     updateCategory,
+    refresh,
     isLoaded
   } = useShoppingList();
 
@@ -35,7 +36,15 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="mt-4 sm:mt-0 flex gap-2 justify-center">
+          <div className="mt-4 sm:mt-0 flex gap-2 justify-center items-center">
+            <button
+              onClick={refresh}
+              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+              aria-label="Refresh list"
+              title="Refresh list"
+            >
+              <RefreshCw size={20} />
+            </button>
             {items.some(i => i.completed) && (
               <button
                 onClick={clearCompleted}
