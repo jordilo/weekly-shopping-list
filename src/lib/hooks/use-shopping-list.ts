@@ -10,59 +10,80 @@ export interface ShoppingItem {
 }
 
 // --- Storage Interface (Adapter Pattern) ---
-// This mimics how a DB client would behave (async methods)
-// In the future, we replace 'LocalStorageAdapter' with 'DatabaseAdapter'
 interface StorageAdapter {
     getItems: () => Promise<ShoppingItem[]>;
-    saveItems: (items: ShoppingItem[]) => Promise<void>;
+    addItem: (item: Omit<ShoppingItem, 'id'>) => Promise<ShoppingItem>;
+    updateItem: (id: string, updates: Partial<ShoppingItem>) => Promise<ShoppingItem>;
+    deleteItem: (id: string) => Promise<void>;
+
     getHistory: () => Promise<string[]>;
     addToHistory: (name: string) => Promise<void>;
+
     getWeekStartDate: () => Promise<number>;
     setWeekStartDate: (date: number) => Promise<void>;
+
+    clearItems: () => Promise<void>;
 }
 
-const STORAGE_KEY_ITEMS = 'weekly-shopping-list-data';
-const STORAGE_KEY_HISTORY = 'weekly-shopping-list-history';
-const STORAGE_KEY_WEEK_START = 'weekly-shopping-list-start-date';
-
-// --- LocalStorage Implementation ---
-const localStorageAdapter: StorageAdapter = {
+// --- API Implementation ---
+const apiAdapter: StorageAdapter = {
     getItems: async () => {
-        if (typeof window === 'undefined') return [];
-        const stored = localStorage.getItem(STORAGE_KEY_ITEMS);
-        return stored ? JSON.parse(stored) : [];
+        const res = await fetch('/api/items');
+        if (!res.ok) return [];
+        return res.json();
     },
-    saveItems: async (items) => {
-        if (typeof window === 'undefined') return;
-        localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(items));
+    addItem: async (item) => {
+        const res = await fetch('/api/items', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(item),
+        });
+        if (!res.ok) throw new Error('Failed to add item');
+        return res.json();
+    },
+    updateItem: async (id, updates) => {
+        const res = await fetch(`/api/items/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates),
+        });
+        if (!res.ok) throw new Error('Failed to update item');
+        return res.json();
+    },
+    deleteItem: async (id) => {
+        await fetch(`/api/items/${id}`, { method: 'DELETE' });
     },
     getHistory: async () => {
-        if (typeof window === 'undefined') return [];
-        const stored = localStorage.getItem(STORAGE_KEY_HISTORY);
-        return stored ? JSON.parse(stored) : [];
+        const res = await fetch('/api/history');
+        if (!res.ok) return [];
+        return res.json();
     },
     addToHistory: async (name) => {
-        if (typeof window === 'undefined') return;
-        const stored = localStorage.getItem(STORAGE_KEY_HISTORY);
-        const history: string[] = stored ? JSON.parse(stored) : [];
-
-        const normalizedName = name.trim();
-        // Case-insensitive check to avoid duplicates like "Milk" and "milk"
-        if (!history.some(h => h.toLowerCase() === normalizedName.toLowerCase())) {
-            const newHistory = [...history, normalizedName].sort();
-            localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(newHistory));
-        }
+        await fetch('/api/history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+        });
     },
     getWeekStartDate: async () => {
-        if (typeof window === 'undefined') return Date.now();
-        const stored = localStorage.getItem(STORAGE_KEY_WEEK_START);
-        return stored ? parseInt(stored, 10) : Date.now();
+        const res = await fetch('/api/meta?key=weekStartDate');
+        if (!res.ok) return Date.now();
+        const data = await res.json();
+        return data.value ? parseInt(data.value) : Date.now();
     },
     setWeekStartDate: async (date) => {
-        if (typeof window === 'undefined') return;
-        localStorage.setItem(STORAGE_KEY_WEEK_START, date.toString());
+        await fetch('/api/meta', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: 'weekStartDate', value: date }),
+        });
+    },
+    clearItems: async () => {
+        // We need a clear endpoint or loop delete. ideally bulk delete
+        // Using the base DELETE on /api/items to clear all
+        await fetch('/api/items', { method: 'DELETE' });
     }
-};
+}
 
 // --- Hook ---
 export function useShoppingList() {
@@ -71,14 +92,16 @@ export function useShoppingList() {
     const [weekStartDate, setWeekStartDate] = useState<number>(Date.now());
     const [isLoaded, setIsLoaded] = useState(false);
 
+    const adapter = apiAdapter;
+
     // Load initial data
     useEffect(() => {
         const loadData = async () => {
             try {
                 const [loadedItems, loadedHistory, loadedDate] = await Promise.all([
-                    localStorageAdapter.getItems(),
-                    localStorageAdapter.getHistory(),
-                    localStorageAdapter.getWeekStartDate()
+                    adapter.getItems(),
+                    adapter.getHistory(),
+                    adapter.getWeekStartDate()
                 ]);
                 setItems(loadedItems);
                 setHistorySuggestions(loadedHistory);
@@ -92,69 +115,84 @@ export function useShoppingList() {
         loadData();
     }, []);
 
-    // Persist items whenever they change (debounce could be added here for optimization)
-    useEffect(() => {
-        if (isLoaded) {
-            localStorageAdapter.saveItems(items);
-        }
-    }, [items, isLoaded]);
-
     const addItem = useCallback(async (name: string, category?: string) => {
         const normalizedName = name.trim();
 
-        setItems((prev) => {
-            // Case-insensitive check
-            const existingItem = prev.find((item) => item.name.toLowerCase() === normalizedName.toLowerCase());
-
-            if (existingItem) {
-                // If exists and completed, reactivate it
-                if (existingItem.completed) {
-                    return prev.map(i => i.id === existingItem.id ? { ...i, completed: false } : i);
-                }
-                // If exists and active, do nothing (prevent duplicate)
-                return prev;
+        // Optimistic UI update check
+        const existing = items.find(i => i.name.toLowerCase() === normalizedName.toLowerCase());
+        if (existing) {
+            if (existing.completed) {
+                // Reactivate
+                setItems(prev => prev.map(i => i.id === existing.id ? { ...i, completed: false } : i));
+                await adapter.updateItem(existing.id, { completed: false });
             }
+            return;
+        }
 
-            const newItem: ShoppingItem = {
-                id: crypto.randomUUID(),
+        // Optimistic add (with temp ID) or wait for server?
+        // Let's wait for server to get real ID to avoid complexity
+        try {
+            const newItem = await adapter.addItem({
                 name: normalizedName,
                 completed: false,
                 category,
                 createdAt: Date.now(),
-            };
+            });
 
-            return [newItem, ...prev];
-        });
+            setItems((prev) => [newItem, ...prev]);
 
-        // Update history
-        await localStorageAdapter.addToHistory(name);
-        // Refresh local suggestion state
-        const newHistory = await localStorageAdapter.getHistory();
-        setHistorySuggestions(newHistory);
-    }, []);
+            // Update history
+            await adapter.addToHistory(name);
+            // Refresh local suggestion state - could rely on local append but let's re-fetch or append
+            setHistorySuggestions(prev => {
+                if (!prev.includes(normalizedName)) return [...prev, normalizedName].sort();
+                return prev;
+            });
 
-    const toggleItem = useCallback((id: string) => {
+        } catch (e) {
+            console.error("Failed to add", e);
+        }
+    }, [items]);
+
+    const toggleItem = useCallback(async (id: string) => {
+        const item = items.find(i => i.id === id);
+        if (!item) return;
+
+        // Optimistic
         setItems((prev) =>
-            prev.map((item) =>
-                item.id === id ? { ...item, completed: !item.completed } : item
+            prev.map((i) =>
+                i.id === id ? { ...i, completed: !i.completed } : i
             )
         );
-    }, []);
 
-    const deleteItem = useCallback((id: string) => {
+        await adapter.updateItem(id, { completed: !item.completed });
+    }, [items]);
+
+    const deleteItem = useCallback(async (id: string) => {
+        // Optimistic
         setItems((prev) => prev.filter((item) => item.id !== id));
+        await adapter.deleteItem(id);
     }, []);
 
-    const clearCompleted = useCallback(() => {
+    const clearCompleted = useCallback(async () => {
+        const completedIds = items.filter(i => i.completed).map(i => i.id);
+        // Optimistic
         setItems((prev) => prev.filter((item) => !item.completed));
-    }, []);
+
+        // Parallel delete
+        await Promise.all(completedIds.map(id => adapter.deleteItem(id)));
+    }, [items]);
 
     const resetList = useCallback(async () => {
         if (confirm("Are you sure you want to start a new week?")) {
             setItems([]);
             const newDate = Date.now();
             setWeekStartDate(newDate);
-            await localStorageAdapter.setWeekStartDate(newDate);
+
+            await Promise.all([
+                adapter.clearItems(),
+                adapter.setWeekStartDate(newDate)
+            ]);
         }
     }, []);
 
