@@ -115,11 +115,6 @@ const apiAdapter: StorageAdapter = {
     }
 }
 
-// --- Default Categories for Fallback ---
-const DEFAULT_CATEGORIES = [
-    'Produce', 'Dairy', 'Meat', 'Bakery', 'Pantry', 'Frozen', 'Beverages', 'Household', 'Other'
-];
-
 // --- Hook ---
 export function useShoppingList() {
     const [items, setItems] = useState<ShoppingItem[]>([]);
@@ -154,7 +149,7 @@ export function useShoppingList() {
         } finally {
             setIsLoaded(true);
         }
-    }, []);
+    }, [adapter]);
 
     // Load initial data
     useEffect(() => {
@@ -198,7 +193,7 @@ export function useShoppingList() {
         } catch (e) {
             console.error("Failed to add", e);
         }
-    }, [items, historySuggestions]);
+    }, [items, historySuggestions, adapter]);
 
     const updateCategory = useCallback(async (id: string, newCategory: string) => {
         const item = items.find(i => i.id === id);
@@ -222,7 +217,7 @@ export function useShoppingList() {
             adapter.updateItem(id, { category: newCategory }),
             adapter.addToHistory(normalizedName, newCategory)
         ]);
-    }, [items]);
+    }, [items, adapter]);
 
     const toggleItem = useCallback(async (id: string) => {
         const item = items.find(i => i.id === id);
@@ -236,13 +231,13 @@ export function useShoppingList() {
         );
 
         await adapter.updateItem(id, { completed: !item.completed });
-    }, [items]);
+    }, [items, adapter]);
 
     const deleteItem = useCallback(async (id: string) => {
         // Optimistic
         setItems((prev) => prev.filter((item) => item.id !== id));
         await adapter.deleteItem(id);
-    }, []);
+    }, [adapter]);
 
     const clearCompleted = useCallback(async () => {
         const completedIds = items.filter(i => i.completed).map(i => i.id);
@@ -251,7 +246,7 @@ export function useShoppingList() {
 
         // Parallel delete
         await Promise.all(completedIds.map(id => adapter.deleteItem(id)));
-    }, [items]);
+    }, [items, adapter]);
 
     const resetList = useCallback(async () => {
         if (confirm("Are you sure you want to start a new week?")) {
@@ -264,7 +259,7 @@ export function useShoppingList() {
                 adapter.setWeekStartDate(newDate)
             ]);
         }
-    }, []);
+    }, [adapter]);
 
     // --- Category Management ---
     const addCategory = useCallback(async (name: string) => {
@@ -275,7 +270,7 @@ export function useShoppingList() {
             console.error(e);
             alert("Failed to add category");
         }
-    }, []);
+    }, [adapter]);
 
     const deleteCategory = useCallback(async (id: string) => {
         try {
@@ -285,7 +280,8 @@ export function useShoppingList() {
             console.error(e);
             alert("Failed to delete category");
         }
-    }, []);
+    }, [adapter]);
+
     return {
         items,
         historySuggestions,

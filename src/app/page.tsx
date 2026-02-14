@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from 'react';
 import { AddItemForm } from '@/components/add-item-form';
 import { ShoppingList } from '@/components/shopping-list';
 import { useShoppingList } from '@/lib/hooks/use-shopping-list';
-import { ShoppingBag, Trash2, RefreshCw, Settings } from 'lucide-react';
+import { ShoppingBag, RefreshCw, Settings } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Home() {
@@ -83,7 +82,7 @@ export default function Home() {
               categories={categories}
               onToggle={toggleItem}
               onDelete={deleteItem}
-              onCategoryChange={updateCategory}
+              onUpdateCategory={updateCategory}
             />
           </div>
         </div>

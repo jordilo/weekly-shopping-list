@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { Item } from '@/lib/models';
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     await dbConnect();
     try {
         const { id } = await params;
@@ -20,18 +20,21 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
             category: updated.category,
             createdAt: updated.createdAt,
         });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed to update item' }, { status: 500 });
     }
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+    _request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
     await dbConnect();
     try {
         const { id } = await params;
         await Item.findByIdAndDelete(id);
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed to delete item' }, { status: 500 });
     }
 }

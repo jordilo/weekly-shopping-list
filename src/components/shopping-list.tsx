@@ -6,14 +6,14 @@ interface ShoppingListProps {
     categories: Category[];
     onToggle: (id: string) => void;
     onDelete: (id: string) => void;
-    onCategoryChange: (id: string, newCategory: string) => void;
+    onUpdateCategory: (id: string, newCategory: string) => void;
 }
 
 const DEFAULT_CATEGORIES = [
     'Produce', 'Dairy', 'Meat', 'Bakery', 'Pantry', 'Frozen', 'Beverages', 'Household', 'Other'
 ];
 
-export function ShoppingList({ items, categories, onToggle, onDelete, onCategoryChange }: ShoppingListProps) {
+export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateCategory }: ShoppingListProps) {
     if (items.length === 0) {
         return (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
@@ -55,9 +55,6 @@ export function ShoppingList({ items, categories, onToggle, onDelete, onCategory
         }
     });
 
-    // Get all unique categories that have items OR are in our effective list
-    const allCategories = Array.from(new Set([...effectiveCategoryNames, ...Object.keys(groupedItems)]));
-
     // Sort: effective categories first (in order), then others sorted alphabetically, then Uncategorized last?
     // Start with effective list order
     const sortedCategories = [...effectiveCategoryNames];
@@ -77,7 +74,7 @@ export function ShoppingList({ items, categories, onToggle, onDelete, onCategory
     }
 
     return (
-        <div className="space-y-6 w-full max-w-md">
+        <div className="space-y-6 w-full">
             {/* Active Items */}
             <div className="space-y-6">
                 {sortedCategories.map((category) => {
@@ -96,7 +93,7 @@ export function ShoppingList({ items, categories, onToggle, onDelete, onCategory
                                     categories={effectiveCategoryNames}
                                     onToggle={onToggle}
                                     onDelete={onDelete}
-                                    onCategoryChange={onCategoryChange}
+                                    onUpdateCategory={onUpdateCategory}
                                 />
                             ))}
                         </div>
@@ -118,7 +115,7 @@ export function ShoppingList({ items, categories, onToggle, onDelete, onCategory
                                 categories={effectiveCategoryNames}
                                 onToggle={onToggle}
                                 onDelete={onDelete}
-                                onCategoryChange={onCategoryChange}
+                                onUpdateCategory={onUpdateCategory}
                             />
                         ))}
                     </div>
@@ -133,13 +130,13 @@ function ShoppingListItem({
     categories,
     onToggle,
     onDelete,
-    onCategoryChange,
+    onUpdateCategory,
 }: {
     item: ShoppingItem;
     categories: string[];
     onToggle: (id: string) => void;
     onDelete: (id: string) => void;
-    onCategoryChange: (id: string, newCategory: string) => void;
+    onUpdateCategory: (id: string, newCategory: string) => void;
 }) {
     // Ensure item's current category is in the options even if it was deleted from global list 
     // so the selector shows the correct current value
@@ -176,7 +173,7 @@ function ShoppingListItem({
             <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto pl-9 sm:pl-0">
                 <select
                     value={currentCat}
-                    onChange={(e) => onCategoryChange(item.id, e.target.value)}
+                    onChange={(e) => onUpdateCategory(item.id, e.target.value)}
                     className="text-xs px-2 py-1 rounded border border-gray-200 bg-gray-50 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-[120px]"
                     onClick={(e) => e.stopPropagation()}
                 >

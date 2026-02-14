@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     try {
         const meta = await Meta.findOne({ key });
         return NextResponse.json({ value: meta ? meta.value : null });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed to fetch meta' }, { status: 500 });
     }
 }
@@ -21,13 +21,9 @@ export async function POST(request: Request) {
     await dbConnect();
     try {
         const { key, value } = await request.json();
-        const meta = await Meta.findOneAndUpdate(
-            { key },
-            { value },
-            { upsert: true, new: true }
-        );
-        return NextResponse.json({ value: meta.value });
-    } catch (error) {
+        await Meta.updateOne({ key }, { value }, { upsert: true });
+        return NextResponse.json({ success: true });
+    } catch {
         return NextResponse.json({ error: 'Failed to save meta' }, { status: 500 });
     }
 }

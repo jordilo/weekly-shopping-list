@@ -28,10 +28,10 @@ export function CategoryManager({ categories, onAdd, onDelete, onClose }: Catego
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
-                <div className="flex items-center justify-between p-4 border-b dark:border-gray-800">
-                    <h2 className="text-lg font-semibold">Manage Categories</h2>
-                    <button onClick={onClose} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
+                <div className="flex items-center justify-between p-4 border-b dark:border-slate-800">
+                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Manage Categories</h2>
+                    <button onClick={onClose} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
                         <X size={20} />
                     </button>
                 </div>
@@ -39,13 +39,13 @@ export function CategoryManager({ categories, onAdd, onDelete, onClose }: Catego
                 <div className="p-4 overflow-y-auto flex-1">
                     <div className="space-y-2 mb-6">
                         {categories.map((cat) => (
-                            <div key={cat.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg group">
-                                <span className="font-medium">{cat.name}</span>
+                            <div key={cat.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg group">
+                                <span className="font-medium text-slate-900 dark:text-slate-100">{cat.name}</span>
                                 <button
                                     onClick={() => {
                                         if (confirm(`Delete category "${cat.name}"?`)) onDelete(cat.id);
                                     }}
-                                    className="text-gray-400 hover:text-red-500 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all p-1"
+                                    className="text-slate-400 hover:text-red-500 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all p-1"
                                 >
                                     <Trash2 size={16} />
                                 </button>
@@ -57,19 +57,19 @@ export function CategoryManager({ categories, onAdd, onDelete, onClose }: Catego
                     </div>
                 </div>
 
-                <div className="p-4 border-t dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
+                <div className="p-4 border-t dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
                     <form onSubmit={handleAdd} className="flex gap-2">
                         <input
                             type="text"
                             value={newCategory}
                             onChange={(e) => setNewCategory(e.target.value)}
                             placeholder="New category..."
-                            className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
                         />
                         <button
                             type="submit"
                             disabled={!newCategory.trim() || isSubmitting}
-                            className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                            className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
                         >
                             <Plus size={20} />
                         </button>

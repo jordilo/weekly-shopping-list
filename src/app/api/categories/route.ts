@@ -12,7 +12,7 @@ export async function GET() {
             order: cat.order
         }));
         return NextResponse.json(formatted);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed to fetch categories' }, { status: 500 });
     }
 }
@@ -20,26 +20,16 @@ export async function GET() {
 export async function POST(request: Request) {
     await dbConnect();
     try {
-        const body = await request.json();
-
-        // Basic validation
-        if (!body.name) {
-            return NextResponse.json({ error: 'Name is required' }, { status: 400 });
-        }
-
-        const category = await Category.create({
-            name: body.name.trim(),
-            order: body.order || 0
-        });
-
+        const { name } = await request.json();
+        const newCategory = await Category.create({ name });
         return NextResponse.json({
-            id: category._id.toString(),
-            name: category.name,
-            order: category.order
+            id: newCategory._id,
+            name: newCategory.name,
+            order: newCategory.order
         });
-    } catch (error: any) {
-        if (error.code === 11000) {
-            return NextResponse.json({ error: 'Category already exists' }, { status: 409 });
+    } catch (error: unknown) {
+        if (error && typeof error === 'object' && 'code' in error && error.code === 11000) {
+            return NextResponse.json({ error: 'Category already exists' }, { status: 400 });
         }
         return NextResponse.json({ error: 'Failed to create category' }, { status: 500 });
     }

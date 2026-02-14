@@ -15,7 +15,7 @@ export async function GET() {
             createdAt: doc.createdAt,
         }));
         return NextResponse.json(formattedItems);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed to fetch items' }, { status: 500 });
     }
 }
@@ -32,15 +32,14 @@ export async function POST(request: Request) {
             category: item.category,
             createdAt: item.createdAt,
         });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed to create item' }, { status: 500 });
     }
 }
 
-export async function PUT(request: Request) {
+export async function PUT() {
     await dbConnect();
     try {
-        const body = await request.json();
         // Determine what update operation is needed.
         // If 'id' is in body, it's a specific update.
         // However, for bulk updates (like clear list), we might need a different strategy.
@@ -65,7 +64,7 @@ export async function PUT(request: Request) {
 
         return NextResponse.json({ message: "Use method specific routes or POST" }, { status: 405 })
 
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed to update' }, { status: 500 });
     }
 }

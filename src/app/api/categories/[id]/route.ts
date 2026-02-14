@@ -8,7 +8,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
         const { id } = await params;
         await Category.findByIdAndDelete(id);
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed to delete category' }, { status: 500 });
     }
 }
@@ -29,7 +29,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
             name: updated.name,
             order: updated.order
         });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed to update category' }, { status: 500 });
     }
 }
