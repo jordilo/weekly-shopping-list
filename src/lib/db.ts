@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = process.env.PROD_MONGODB_URI_MONGODB_URI || process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
     if (process.env.NODE_ENV === 'production') {
@@ -8,10 +8,10 @@ if (!MONGODB_URI) {
         // However, for API routes, it IS required.
         // Next.js build tries to statically analyze routes.
         // Let's warn instead of throw, but ensure connect fails clearly if called.
-        console.warn('MONGODB_URI is not defined. DB connection will fail.');
+        console.warn('Neither PROD_MONGODB_URI_MONGODB_URI nor MONGODB_URI is defined. DB connection will fail.');
     } else {
         throw new Error(
-            'Please define the MONGODB_URI environment variable inside .env.local'
+            'Please define the MONGODB_URI or PROD_MONGODB_URI_MONGODB_URI environment variable inside .env.local'
         );
     }
 }
