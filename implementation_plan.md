@@ -112,3 +112,31 @@ Create a "Week by Week" shopping list application for a couple. The app will all
 #### [MODIFY] [`lib/hooks/use-shopping-list.ts`](file:///d:/code/weekly-shopping-list/src/lib/hooks/use-shopping-list.ts)
 - **Modify**: Create `apiAdapter` implementing `StorageAdapter`.
 - **Modify**: Switch default adapter from `localStorageAdapter` to `apiAdapter`.
+
+### Customizable Categories
+
+#### [NEW] [`lib/models.ts`](file:///d:/code/weekly-shopping-list/src/lib/models.ts)
+- **Category**: `{ name: String, order: Number }`
+
+#### [NEW] [`app/api/categories/route.ts`](file:///d:/code/weekly-shopping-list/src/app/api/categories/route.ts)
+- GET: Fetch all categories
+- POST: Create category
+- DELETE: Remove category
+- PUT: Update category
+
+#### [MODIFY] [`lib/hooks/use-shopping-list.ts`](file:///d:/code/weekly-shopping-list/src/lib/hooks/use-shopping-list.ts)
+- **Modify**: Add `categories` state and methods (`addCategory`, `deleteCategory`, `updateCategory`) to `StorageAdapter`.
+
+#### [NEW] [`components/category-manager.tsx`](file:///d:/code/weekly-shopping-list/src/components/category-manager.tsx)
+- UI to list, add, edit, and delete categories.
+- Accessible via a modal or dedicated page.
+
+#### [MODIFY] [`app/page.tsx`](file:///d:/code/weekly-shopping-list/src/app/page.tsx)
+- Add "Manage Categories" button/link.
+- Render `CategoryManager` (e.g., in a Dialog).
+
+#### [MODIFY] [`components/shopping-list.tsx`](file:///d:/code/weekly-shopping-list/src/components/shopping-list.tsx)
+- Use dynamic categories instead of hardcoded `CATEGORIES` constant.
+
+#### [MODIFY] [`components/add-item-form.tsx`](file:///d:/code/weekly-shopping-list/src/components/add-item-form.tsx)
+- Use dynamic categories for suggestions/validation if needed (though it's currently free-text or history based).

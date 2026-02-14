@@ -135,29 +135,33 @@ test.describe('Weekly Shopping List', () => {
         await expect(page.getByRole('heading', { name: 'Uncategorized' })).toBeVisible();
         await expect(page.getByText(uniqueName)).toBeVisible();
 
-        // 2. Change category to "Produce"
+        // 2. Change category to something other than Uncategorized
         // Find the select associated with item
         const itemRow = page.locator('.group', { hasText: uniqueName });
         const categorySelect = itemRow.locator('select');
 
+        // Discover available options
+        const options = await categorySelect.locator('option').allInnerTexts();
+        const categoryToSelect = options.find(o => o !== 'Uncategorized') || 'Produce';
+
         // Wait for update request
         const updateResponsePromise = page.waitForResponse(resp => resp.url().includes('/api/items') && resp.request().method() === 'PUT');
 
-        await categorySelect.selectOption('Produce');
+        await categorySelect.selectOption(categoryToSelect);
 
         const response = await updateResponsePromise;
         expect(response.status()).toBe(200);
 
-        // 3. Verify it moved to Produce header
-        await expect(page.getByRole('heading', { name: 'Produce' })).toBeVisible();
+        // 3. Verify it moved to selected category header
+        await expect(page.getByRole('heading', { name: categoryToSelect })).toBeVisible();
 
         // 4. Reload to verify persistence
         await page.reload();
-        await expect(page.getByRole('heading', { name: 'Produce' })).toBeVisible();
+        await expect(page.getByRole('heading', { name: categoryToSelect })).toBeVisible();
         await expect(page.getByText(uniqueName)).toBeVisible();
 
         // 5. Add same item again (simulate next week or duplicate check)
-        // First delete it to allow re-adding if we have duplicate check
+        // First delete it to allow re-adding
         const deleteBtn = itemRow.getByRole('button', { name: 'Delete item' });
         await deleteBtn.click();
         await expect(page.getByText(uniqueName)).not.toBeVisible();
@@ -166,16 +170,10 @@ test.describe('Weekly Shopping List', () => {
         await input.fill(uniqueName);
         await addButton.click();
 
-        // 6. Should be automatically in "Produce" now (Learned!)
-        await expect(page.getByRole('heading', { name: 'Produce' })).toBeVisible();
-        // Use first() if there are multiple Uncategorized headers (unlikely but safe) or check count 0 if possible
-        // But simplest is check the item is NOT under Uncategorized.
-        // However, if we have other Uncategorized items, the header might still be visible.
-        // So we should check the ITEM is under Produce.
-        // The previous expect checks Produce header is visible.
-        // We can also check that the item row's select has value 'Produce'
+        // 6. Should be automatically in the same category now (Learned!)
+        await expect(page.getByRole('heading', { name: categoryToSelect })).toBeVisible();
         const newItemRow = page.locator('.group', { hasText: uniqueName });
-        await expect(newItemRow.locator('select')).toHaveValue('Produce');
+        await expect(newItemRow.locator('select')).toHaveValue(categoryToSelect);
     });
 
     test('should refresh the list', async ({ page, request }) => {

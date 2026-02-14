@@ -1,12 +1,14 @@
 "use client";
 
+import { useState } from 'react';
 import { AddItemForm } from '@/components/add-item-form';
 import { ShoppingList } from '@/components/shopping-list';
 import { useShoppingList } from '@/lib/hooks/use-shopping-list';
-import { ShoppingBag, Trash2, RefreshCw } from 'lucide-react';
+import { ShoppingBag, Trash2, RefreshCw, Settings } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Home() {
-  const { items, historySuggestions, weekStartDate, addItem, toggleItem, deleteItem,
+  const { items, historySuggestions, weekStartDate, categories, addItem, toggleItem, deleteItem,
     clearCompleted,
     resetList,
     updateCategory,
@@ -45,6 +47,14 @@ export default function Home() {
             >
               <RefreshCw size={20} />
             </button>
+            <Link
+              href="/categories"
+              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+              aria-label="Manage Categories"
+              title="Manage Categories"
+            >
+              <Settings size={20} />
+            </Link>
             {items.some(i => i.completed) && (
               <button
                 onClick={clearCompleted}
@@ -70,6 +80,7 @@ export default function Home() {
           <div className="w-full">
             <ShoppingList
               items={items}
+              categories={categories}
               onToggle={toggleItem}
               onDelete={deleteItem}
               onCategoryChange={updateCategory}

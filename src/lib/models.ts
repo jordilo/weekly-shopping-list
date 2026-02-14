@@ -27,3 +27,11 @@ const MetaSchema = new Schema({
 });
 
 export const Meta = models.Meta || model('Meta', MetaSchema);
+
+// --- Category Model ---
+const CategorySchema = new Schema({
+    name: { type: String, required: true, unique: true },
+    order: { type: Number, default: 0 },
+});
+
+export const Category = models.Category || model('Category', CategorySchema);
