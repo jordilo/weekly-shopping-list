@@ -3,7 +3,7 @@
 import { AddItemForm } from '@/components/add-item-form';
 import { ShoppingList } from '@/components/shopping-list';
 import { useShoppingList } from '@/lib/hooks/use-shopping-list';
-import { ShoppingBag, RefreshCw, Settings } from 'lucide-react';
+import { ShoppingBag, RefreshCw, Settings, List as ListIcon } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Home() {
@@ -46,6 +46,14 @@ export default function Home() {
             >
               <RefreshCw size={20} />
             </button>
+            <Link
+              href="/items"
+              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+              aria-label="Manage Items"
+              title="Manage Items"
+            >
+              <ListIcon size={20} />
+            </Link>
             <Link
               href="/categories"
               className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"

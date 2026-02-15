@@ -33,6 +33,8 @@ interface StorageAdapter {
     getCategories: () => Promise<Category[]>;
     addCategory: (name: string) => Promise<Category>;
     deleteCategory: (id: string) => Promise<void>;
+    deleteHistoryItem: (name: string) => Promise<void>;
+    renameHistoryItem: (oldName: string, newName: string, category: string) => Promise<void>;
 
     getWeekStartDate: () => Promise<number>;
     setWeekStartDate: (date: number) => Promise<void>;
@@ -94,8 +96,19 @@ const apiAdapter: StorageAdapter = {
         if (!res.ok) throw new Error('Failed to add category');
         return res.json();
     },
-    deleteCategory: async (id) => {
+    deleteCategory: async (id: string) => {
         await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+    },
+    deleteHistoryItem: async (name) => {
+        await fetch(`/api/history/${encodeURIComponent(name)}`, { method: 'DELETE' });
+    },
+    renameHistoryItem: async (oldName, newName, category) => {
+        const res = await fetch(`/api/history/${encodeURIComponent(oldName)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ newName, category }),
+        });
+        if (!res.ok) throw new Error('Failed to rename history item');
     },
     getWeekStartDate: async () => {
         const res = await fetch('/api/meta?key=weekStartDate');
@@ -135,7 +148,8 @@ export function useShoppingList() {
                 adapter.getWeekStartDate()
             ]);
             setItems(loadedItems);
-            setHistorySuggestions(loadedHistory);
+            // Sanitize history suggestions from inconsistent data on database
+            setHistorySuggestions(loadedHistory.map(h => ({ ...h, category: h.category ?? 'Uncategorized' })));
 
             if (loadedCategories.length === 0) {
                 setCategories([]);
@@ -282,6 +296,46 @@ export function useShoppingList() {
         }
     }, [adapter]);
 
+    const deleteHistoryItem = useCallback(async (name: string) => {
+        try {
+            setHistorySuggestions(prev => prev.filter(h => h.name !== name));
+            await adapter.deleteHistoryItem(name);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to delete item from history");
+        }
+    }, [adapter]);
+
+    const addHistoryItem = useCallback(async (name: string, category: string) => {
+        try {
+            await adapter.addToHistory(name, category);
+            setHistorySuggestions(prev => {
+                const existing = prev.find(h => h.name.toLowerCase() === name.toLowerCase());
+                if (existing) {
+                    return prev.map(h => h.name.toLowerCase() === name.toLowerCase() ? { ...h, category } : h);
+                }
+                return [...prev, { name, category }];
+            });
+        } catch (e) {
+            console.error(e);
+            alert("Failed to save history item");
+        }
+    }, [adapter]);
+
+    const renameHistoryItem = useCallback(async (oldName: string, newName: string, category: string) => {
+        try {
+            // Optimistic update
+            setHistorySuggestions(prev => prev.map(h => h.name === oldName ? { ...h, name: newName, category } : h));
+
+            await adapter.renameHistoryItem(oldName, newName, category);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to rename item");
+            // Refresh to sync back
+            refresh();
+        }
+    }, [adapter, refresh]);
+
     return {
         items,
         historySuggestions,
@@ -296,6 +350,9 @@ export function useShoppingList() {
         refresh,
         addCategory,
         deleteCategory,
+        deleteHistoryItem,
+        addHistoryItem,
+        renameHistoryItem,
         isLoaded
     };
 }
