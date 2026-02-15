@@ -3,8 +3,9 @@
 import { AddItemForm } from '@/components/add-item-form';
 import { ShoppingList } from '@/components/shopping-list';
 import { useShoppingList } from '@/lib/hooks/use-shopping-list';
-import { ShoppingBag, RefreshCw, Settings, List as ListIcon } from 'lucide-react';
+import { RefreshCw, Settings, List as ListIcon } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Home() {
   const { items, historySuggestions, weekStartDate, categories, addItem, toggleItem, deleteItem,
@@ -28,7 +29,13 @@ export default function Home() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3 justify-center sm:justify-start">
               <span className="p-2 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-500/20">
-                <ShoppingBag size={28} />
+                <Image
+                  src="/icons/icon.svg"
+                  alt="Weekly Shopping List"
+                  width={28}
+                  height={28}
+                  className="object-cover object-center"
+                />
               </span>
               Weekly Shop
             </h1>
