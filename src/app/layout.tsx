@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { BottomNavbar } from "@/components/bottom-navbar";
+import { ShoppingListProvider } from "@/lib/hooks/use-shopping-list";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,10 +47,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans`}
       >
-        <div className="pb-32 min-h-screen">
-          {children}
-        </div>
-        <BottomNavbar />
+        <ShoppingListProvider>
+          <div className="pb-32 min-h-screen">
+            {children}
+          </div>
+          <BottomNavbar />
+        </ShoppingListProvider>
       </body>
     </html>
   );
