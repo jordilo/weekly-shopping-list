@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+"use client";
+
+import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
 
 // --- Types ---
 export interface ShoppingItem {
@@ -128,8 +130,29 @@ const apiAdapter: StorageAdapter = {
     }
 }
 
-// --- Hook ---
-export function useShoppingList() {
+interface ShoppingListContextType {
+    items: ShoppingItem[];
+    historySuggestions: HistoryItem[];
+    categories: Category[];
+    weekStartDate: number;
+    addItem: (name: string) => Promise<void>;
+    toggleItem: (id: string) => Promise<void>;
+    updateCategory: (id: string, newCategory: string) => Promise<void>;
+    deleteItem: (id: string) => Promise<void>;
+    clearCompleted: () => Promise<void>;
+    resetList: () => Promise<void>;
+    refresh: () => Promise<void>;
+    addCategory: (name: string) => Promise<void>;
+    deleteCategory: (id: string) => Promise<void>;
+    deleteHistoryItem: (name: string) => Promise<void>;
+    addHistoryItem: (name: string, category: string) => Promise<void>;
+    renameHistoryItem: (oldName: string, newName: string, category: string) => Promise<void>;
+    isLoaded: boolean;
+}
+
+const ShoppingListContext = createContext<ShoppingListContextType | undefined>(undefined);
+
+export function ShoppingListProvider({ children }: { children: ReactNode }) {
     const [items, setItems] = useState<ShoppingItem[]>([]);
     const [historySuggestions, setHistorySuggestions] = useState<HistoryItem[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -148,15 +171,8 @@ export function useShoppingList() {
                 adapter.getWeekStartDate()
             ]);
             setItems(loadedItems);
-            // Sanitize history suggestions from inconsistent data on database
             setHistorySuggestions(loadedHistory.map(h => ({ ...h, category: h.category ?? 'Uncategorized' })));
-
-            if (loadedCategories.length === 0) {
-                setCategories([]);
-            } else {
-                setCategories(loadedCategories);
-            }
-
+            setCategories(loadedCategories || []);
             setWeekStartDate(loadedDate);
         } catch (error) {
             console.error('Failed to load data', error);
@@ -165,26 +181,22 @@ export function useShoppingList() {
         }
     }, [adapter]);
 
-    // Load initial data
     useEffect(() => {
         refresh();
     }, [refresh]);
 
     const addItem = useCallback(async (name: string) => {
         const normalizedName = name.trim();
-        // Check exact match case-insensitive
         const existing = items.find(i => i.name.toLowerCase() === normalizedName.toLowerCase());
 
         if (existing) {
             if (existing.completed) {
-                // Reactivate
                 setItems(prev => prev.map(i => i.id === existing.id ? { ...i, completed: false } : i));
                 await adapter.updateItem(existing.id, { completed: false });
             }
             return;
         }
 
-        // Auto-categorize
         const historyItem = historySuggestions.find(h => h.name.toLowerCase() === normalizedName.toLowerCase());
         const category = historyItem?.category || 'Uncategorized';
 
@@ -198,7 +210,6 @@ export function useShoppingList() {
 
             setItems((prev) => [newItem, ...prev]);
 
-            // Update history if it's a new item (even default category)
             if (!historyItem) {
                 await adapter.addToHistory(normalizedName, category);
                 setHistorySuggestions(prev => [...prev, { name: normalizedName, category }]);
@@ -213,10 +224,8 @@ export function useShoppingList() {
         const item = items.find(i => i.id === id);
         if (!item) return;
 
-        // Optimistic update item
         setItems(prev => prev.map(i => i.id === id ? { ...i, category: newCategory } : i));
 
-        // Optimistic update history
         const normalizedName = item.name.trim();
         setHistorySuggestions(prev => {
             const existing = prev.find(h => h.name.toLowerCase() === normalizedName.toLowerCase());
@@ -226,7 +235,6 @@ export function useShoppingList() {
             return [...prev, { name: normalizedName, category: newCategory }];
         });
 
-        // Async persist
         await Promise.all([
             adapter.updateItem(id, { category: newCategory }),
             adapter.addToHistory(normalizedName, newCategory)
@@ -237,7 +245,6 @@ export function useShoppingList() {
         const item = items.find(i => i.id === id);
         if (!item) return;
 
-        // Optimistic
         setItems((prev) =>
             prev.map((i) =>
                 i.id === id ? { ...i, completed: !i.completed } : i
@@ -248,17 +255,13 @@ export function useShoppingList() {
     }, [items, adapter]);
 
     const deleteItem = useCallback(async (id: string) => {
-        // Optimistic
         setItems((prev) => prev.filter((item) => item.id !== id));
         await adapter.deleteItem(id);
     }, [adapter]);
 
     const clearCompleted = useCallback(async () => {
         const completedIds = items.filter(i => i.completed).map(i => i.id);
-        // Optimistic
         setItems((prev) => prev.filter((item) => !item.completed));
-
-        // Parallel delete
         await Promise.all(completedIds.map(id => adapter.deleteItem(id)));
     }, [items, adapter]);
 
@@ -275,7 +278,6 @@ export function useShoppingList() {
         }
     }, [adapter]);
 
-    // --- Category Management ---
     const addCategory = useCallback(async (name: string) => {
         try {
             const newCat = await adapter.addCategory(name);
@@ -324,19 +326,16 @@ export function useShoppingList() {
 
     const renameHistoryItem = useCallback(async (oldName: string, newName: string, category: string) => {
         try {
-            // Optimistic update
             setHistorySuggestions(prev => prev.map(h => h.name === oldName ? { ...h, name: newName, category } : h));
-
             await adapter.renameHistoryItem(oldName, newName, category);
         } catch (e) {
             console.error(e);
             alert("Failed to rename item");
-            // Refresh to sync back
             refresh();
         }
     }, [adapter, refresh]);
 
-    return {
+    const value = {
         items,
         historySuggestions,
         categories,
@@ -354,5 +353,19 @@ export function useShoppingList() {
         addHistoryItem,
         renameHistoryItem,
         isLoaded
-    };
+    }
+
+    return <ShoppingListContext.Provider
+        value={value}>
+        {children}
+    </ShoppingListContext.Provider>
+
+}
+
+export function useShoppingList() {
+    const context = useContext(ShoppingListContext);
+    if (context === undefined) {
+        throw new Error('useShoppingList must be used within a ShoppingListProvider');
+    }
+    return context;
 }
