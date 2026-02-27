@@ -35,3 +35,16 @@ const CategorySchema = new Schema({
 });
 
 export const Category = models.Category || model('Category', CategorySchema);
+
+// --- PushSubscription Model ---
+const PushSubscriptionSchema = new Schema({
+    endpoint: { type: String, required: true, unique: true },
+    keys: {
+        p256dh: { type: String, required: true },
+        auth: { type: String, required: true }
+    },
+    expirationTime: { type: Number },
+    createdAt: { type: Number, default: () => Date.now() }
+});
+
+export const PushSubscription = models.PushSubscription || model('PushSubscription', PushSubscriptionSchema);
