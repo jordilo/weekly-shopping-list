@@ -28,7 +28,7 @@ export function NotificationManager() {
     useEffect(() => {
         const userAgent = window.navigator.userAgent.toLowerCase();
         const ios = /iphone|ipad|ipod/.test(userAgent);
-        const standalone = (window.navigator as any).standalone || window.matchMedia('(display-mode: standalone)').matches;
+        const standalone = 'standalone' in window.navigator ? Boolean(window.navigator.standalone) : window.matchMedia('(display-mode: standalone)').matches;
 
         setIsIOS(ios);
         setIsStandalone(standalone);
@@ -113,7 +113,7 @@ export function NotificationManager() {
                                 </p>
                                 <ol className="text-left text-xs text-gray-600 dark:text-gray-300 mt-3 space-y-2 list-decimal list-inside">
                                     <li>Tap the <strong>Share</strong> button ( <svg className="inline w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6a3 3 0 100 2.684m0-2.684l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg> or <svg className="inline w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg> )</li>
-                                    <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+                                    <li>Scroll down and tap <strong>&apos;Add to Home Screen&apos;</strong></li>
                                     <li>Open the app from your <strong>Home Screen</strong> to enable alerts</li>
                                 </ol>
                             </div>
