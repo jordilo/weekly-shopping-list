@@ -1,14 +1,8 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { Item, PushSubscription } from '@/lib/models';
+import { configureWebPush } from '@/lib/push';
 import webpush from 'web-push';
-
-// Configure Web Push
-webpush.setVapidDetails(
-    process.env.VAPID_MAILTO || 'mailto:example@yourdomain.com',
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-    process.env.VAPID_PRIVATE_KEY!
-);
 
 export async function GET() {
     await dbConnect();
@@ -36,6 +30,9 @@ export async function POST(request: Request) {
 
         // --- Trigger Push Notifications ---
         const subscriptions = await PushSubscription.find({});
+
+        // Initialize push notifications lazily
+        configureWebPush();
 
         const payload = JSON.stringify({
             title: 'New Item Added',
