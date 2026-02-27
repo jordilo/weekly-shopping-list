@@ -240,70 +240,94 @@ function ItemEditModal({ isOpen, onOpenChange, item, categories, onUpdate, onDel
             placement="center"
             backdrop="blur"
             classNames={{
-                base: "border-[#292f46] bg-[#19172c] dark:bg-[#19172c] text-[#a8b0d3]",
-                header: "border-b-[1px] border-[#292f46]",
-                footer: "border-t-[1px] border-[#292f46]",
-                closeButton: "hover:bg-white/5 active:bg-white/10",
+                base: "bg-white dark:bg-gray-900 !bg-opacity-100 border border-gray-200 dark:border-gray-800 shadow-2xl min-w-[320px] sm:min-w-[450px]",
+                header: "border-b border-gray-100 dark:border-gray-800 p-6",
+                body: "p-6",
+                footer: "border-t border-gray-100 dark:border-gray-800 p-6 flex justify-between items-center",
             }}
         >
             <ModalContent>
                 {(onClose) => (
                     <>
                         <ModalHeader className="flex flex-col gap-1">
-                            <h2 className="text-xl font-bold text-white">Edit Item</h2>
-                            <p className="text-sm text-gray-400">Update details for this product</p>
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Item</h2>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Update details for this product</p>
                         </ModalHeader>
-                        <ModalBody className="py-6">
-                            <div className="space-y-6">
-                                <Input
-                                    label="Product Name"
-                                    value={item.name}
-                                    isReadOnly
-                                    variant="bordered"
-                                    description="Name cannot be changed here"
-                                    classNames={{
-                                        input: "text-gray-400",
-                                        label: "text-blue-400",
-                                    }}
-                                />
+                        <ModalBody>
+                            <div className="flex flex-col gap-8 w-full py-2">
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                                        Product Name
+                                    </label>
+                                    <Input
+                                        value={item.name}
+                                        isReadOnly
+                                        variant="bordered"
+                                        description="Name cannot be changed here"
+                                        classNames={{
+                                            input: "text-gray-500 bg-gray-50/50 dark:bg-gray-800/50",
+                                            inputWrapper: "border-gray-200 dark:border-gray-700",
+                                        }}
+                                    />
+                                </div>
                                 
-                                <Input
-                                    label="Quantity"
-                                    placeholder="e.g., 2, 500g, 1 pack"
-                                    value={quantity}
-                                    onValueChange={setQuantity}
-                                    variant="bordered"
-                                    autoFocus
-                                />
+                                <div className="flex flex-col gap-2">
+                                    <label htmlFor="quantity-input" className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                                        Quantity
+                                    </label>
+                                    <Input
+                                        id="quantity-input"
+                                        placeholder="e.g., 2, 500g, 1 pack"
+                                        value={quantity}
+                                        onValueChange={setQuantity}
+                                        variant="bordered"
+                                        classNames={{
+                                            inputWrapper: "border-gray-200 dark:border-gray-700",
+                                        }}
+                                    />
+                                </div>
 
-                                <Select
-                                    label="Category"
-                                    selectedKeys={[category]}
-                                    onSelectionChange={(keys) => setCategory(String(Array.from(keys)[0]))}
-                                    variant="bordered"
-                                >
-                                    {uniqueOptions.map((cat) => (
-                                        <SelectItem key={cat}>
-                                            {cat}
-                                        </SelectItem>
-                                    ))}
-                                </Select>
+                                <div className="flex flex-col gap-2">
+                                    <label htmlFor="category-select" className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                                        Category
+                                    </label>
+                                    <Select
+                                        id="category-select"
+                                        selectedKeys={[category]}
+                                        onSelectionChange={(keys) => setCategory(String(Array.from(keys)[0]))}
+                                        variant="bordered"
+                                        classNames={{
+                                            trigger: "border-gray-200 dark:border-gray-700 bg-transparent",
+                                        }}
+                                        popoverProps={{
+                                            classNames: {
+                                                content: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl opacity-100",
+                                            }
+                                        }}
+                                    >
+                                        {uniqueOptions.map((cat) => (
+                                            <SelectItem key={cat} className="text-gray-900 dark:text-gray-100">
+                                                {cat}
+                                            </SelectItem>
+                                        ))}
+                                    </Select>
+                                </div>
                             </div>
                         </ModalBody>
-                        <ModalFooter className="justify-between">
+                        <ModalFooter>
                             <Button 
                                 color="danger" 
-                                variant="light" 
+                                variant="flat" 
                                 onPress={() => handleDelete(onClose)}
                                 startContent={<Trash2 size={18} />}
                             >
                                 Delete
                             </Button>
-                            <div className="flex gap-2">
-                                <Button variant="flat" onPress={onClose}>
+                            <div className="flex gap-3">
+                                <Button variant="light" onPress={onClose}>
                                     Cancel
                                 </Button>
-                                <Button color="primary" onPress={() => handleSave(onClose)}>
+                                <Button color="primary" onPress={() => handleSave(onClose)} className="font-bold">
                                     Save Changes
                                 </Button>
                             </div>

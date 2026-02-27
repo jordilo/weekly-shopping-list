@@ -46,4 +46,29 @@ test.describe('Visual Regression Testing', () => {
         // Capture snapshot of the modal
         await expect(modal).toHaveScreenshot('edit-modal-view.png');
     });
+
+    test('should match category select dropdown snapshot', async ({ page }) => {
+        // Add an item and open modal
+        const input = page.getByPlaceholder('Add item (e.g., Milk)');
+        await input.fill('Grapes');
+        await page.getByRole('button', { name: 'Add' }).click();
+        await page.getByText('Grapes').click();
+        
+        const modal = page.locator('section[role="dialog"]');
+        await expect(modal).toBeVisible();
+
+        // Click category select to open dropdown
+        // Using exact HeroUI selectors for reliability
+        const selectTrigger = page.locator('button[data-slot="trigger"]');
+        await selectTrigger.click();
+
+        // Wait for options in portal (rendered at the end of body)
+        const firstOption = page.locator('li[role="option"]').first();
+        await expect(firstOption).toBeVisible();
+        await page.waitForTimeout(500); // Wait for transition
+
+        // Capture snapshot of the open dropdown
+        // Note: Popovers are usually outside the modal in the DOM, so we capture the whole page or target the popover
+        await expect(page).toHaveScreenshot('category-select-dropdown.png');
+    });
 });
