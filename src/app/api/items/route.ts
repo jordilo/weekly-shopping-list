@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import { Item } from '@/lib/models';
+import { Item, PushSubscription } from '@/lib/models';
+import { configureWebPush } from '@/lib/push';
+import webpush from 'web-push';
 
 export async function GET() {
     await dbConnect();
@@ -25,6 +27,39 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
         const item = await Item.create(body);
+
+        // --- Trigger Push Notifications ---
+        const subscriptions = await PushSubscription.find({});
+
+        // Initialize push notifications lazily
+        configureWebPush();
+
+        const payload = JSON.stringify({
+            title: 'New Item Added',
+            body: `${item.name} was added to the list.`,
+            url: '/'
+        });
+
+        // Send notifications to all subscribers in parallel
+        Promise.all(subscriptions.map(sub => {
+            return webpush.sendNotification(
+                {
+                    endpoint: sub.endpoint,
+                    keys: {
+                        p256dh: sub.keys.p256dh,
+                        auth: sub.keys.auth
+                    }
+                },
+                payload
+            ).catch(err => {
+                console.error('Error sending push notification:', err);
+                if (err.statusCode === 410 || err.statusCode === 404) {
+                    // Subscription has expired or is no longer valid
+                    return PushSubscription.deleteOne({ endpoint: sub.endpoint });
+                }
+            });
+        })).catch(err => console.error('Error in push broadcast:', err));
+
         return NextResponse.json({
             id: item._id.toString(),
             name: item.name,
@@ -32,7 +67,8 @@ export async function POST(request: Request) {
             category: item.category,
             createdAt: item.createdAt,
         });
-    } catch {
+    } catch (error) {
+        console.error('API Error:', error);
         return NextResponse.json({ error: 'Failed to create item' }, { status: 500 });
     }
 }

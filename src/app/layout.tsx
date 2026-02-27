@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { BottomNavbar } from "@/components/bottom-navbar";
 import { ShoppingListProvider } from "@/lib/hooks/use-shopping-list";
+import { NotificationManager } from "@/components/notification-manager";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -48,6 +49,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans`}
       >
         <ShoppingListProvider>
+          <NotificationManager />
           <div className="pb-32 min-h-screen">
             {children}
           </div>
