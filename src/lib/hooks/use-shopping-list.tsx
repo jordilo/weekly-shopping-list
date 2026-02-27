@@ -8,6 +8,7 @@ export interface ShoppingItem {
     name: string;
     completed: boolean;
     category?: string;
+    quantity?: string;
     createdAt: number;
 }
 
@@ -138,6 +139,7 @@ interface ShoppingListContextType {
     addItem: (name: string) => Promise<void>;
     toggleItem: (id: string) => Promise<void>;
     updateCategory: (id: string, newCategory: string) => Promise<void>;
+    updateItem: (id: string, updates: Partial<ShoppingItem>) => Promise<void>;
     deleteItem: (id: string) => Promise<void>;
     clearCompleted: () => Promise<void>;
     resetList: () => Promise<void>;
@@ -254,6 +256,33 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
         await adapter.updateItem(id, { completed: !item.completed });
     }, [items, adapter]);
 
+    const updateItem = useCallback(async (id: string, updates: Partial<ShoppingItem>) => {
+        const item = items.find(i => i.id === id);
+        if (!item) return;
+
+        setItems(prev => prev.map(i => i.id === id ? { ...i, ...updates } : i));
+
+        const nameToUse = updates.name || item.name;
+        const categoryToUse = updates.category || item.category || 'Uncategorized';
+        
+        if (updates.name || updates.category) {
+            setHistorySuggestions(prev => {
+                const normalizedName = nameToUse.trim();
+                const existing = prev.find(h => h.name.toLowerCase() === normalizedName.toLowerCase());
+                if (existing) {
+                    return prev.map(h => h.name.toLowerCase() === normalizedName.toLowerCase() ? { ...h, category: categoryToUse } : h);
+                }
+                return [...prev, { name: normalizedName, category: categoryToUse }];
+            });
+
+            if (updates.category) {
+                await adapter.addToHistory(nameToUse, updates.category);
+            }
+        }
+
+        await adapter.updateItem(id, updates);
+    }, [items, adapter]);
+
     const deleteItem = useCallback(async (id: string) => {
         setItems((prev) => prev.filter((item) => item.id !== id));
         await adapter.deleteItem(id);
@@ -343,6 +372,7 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
         addItem,
         toggleItem,
         updateCategory,
+        updateItem,
         deleteItem,
         clearCompleted,
         resetList,

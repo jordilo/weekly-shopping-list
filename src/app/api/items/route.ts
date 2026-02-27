@@ -14,6 +14,7 @@ export async function GET() {
             name: doc.name,
             completed: doc.completed,
             category: doc.category,
+            quantity: doc.quantity || '1',
             createdAt: doc.createdAt,
         }));
         return NextResponse.json(formattedItems);
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
             name: item.name,
             completed: item.completed,
             category: item.category,
+            quantity: item.quantity || '1',
             createdAt: item.createdAt,
         });
     } catch (error) {

@@ -11,7 +11,7 @@ export default function Home() {
   const { items, historySuggestions, weekStartDate, categories, addItem, toggleItem, deleteItem,
     clearCompleted,
     resetList,
-    updateCategory,
+    updateItem,
     refresh,
     isLoaded
   } = useShoppingList();
@@ -98,7 +98,7 @@ export default function Home() {
             categories={categories}
             onToggle={toggleItem}
             onDelete={deleteItem}
-            onUpdateCategory={updateCategory}
+            onUpdateItem={updateItem}
           />
         </div>
       </div>

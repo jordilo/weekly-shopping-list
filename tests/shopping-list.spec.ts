@@ -30,24 +30,56 @@ test.describe('Weekly Shopping List', () => {
         await input.fill('Carrots');
         await page.getByRole('button', { name: 'Add' }).click();
 
-        const item = page.getByText('Carrots');
-        await item.click(); // Click to toggle
+        const itemRow = page.locator('.group', { hasText: 'Carrots' });
+        // Click the checkbox button specifically, not the whole row
+        await itemRow.locator('button').filter({ has: page.locator('svg') }).click();
 
-        // Check if it moved to completed section (logic implies line-through style)
-        await expect(item).toHaveClass(/line-through/);
+        // Check if it's completed
+        await expect(page.getByText('Carrots')).toHaveClass(/line-through/);
     });
 
-    test('should delete items', async ({ page }) => {
+    test('should delete items via modal', async ({ page }) => {
         const input = page.getByPlaceholder('Add item (e.g., Milk)');
         await input.fill('Donuts');
         await page.getByRole('button', { name: 'Add' }).click();
 
-        // Hover to reveal delete button
-        const itemRow = page.locator('.group').filter({ hasText: 'Donuts' });
-        await itemRow.hover();
-        await itemRow.getByLabel('Delete item').click();
+        // Click row to open modal
+        await page.getByText('Donuts').click();
+        
+        // Handle confirm dialog
+        page.on('dialog', dialog => dialog.accept());
+
+        // Click delete in modal
+        await page.getByRole('button', { name: 'Delete' }).click();
 
         await expect(page.getByText('Donuts')).not.toBeVisible();
+    });
+
+    test('should update quantity and category via modal', async ({ page }) => {
+        const input = page.getByPlaceholder('Add item (e.g., Milk)');
+        await input.fill('Milk');
+        await page.getByRole('button', { name: 'Add' }).click();
+
+        // Click row to open modal
+        await page.getByText('Milk').click();
+        
+        // Verify name is read-only
+        await expect(page.getByLabel('Product Name')).toHaveAttribute('readonly', '');
+
+        // Update quantity
+        const qtyInput = page.getByLabel('Quantity');
+        await qtyInput.fill('2 liters');
+
+        // Update category
+        await page.getByRole('button', { name: /Category/i }).click();
+        await page.getByRole('listbox').getByText('Dairy', { exact: true }).click();
+
+        // Save
+        await page.getByRole('button', { name: 'Save Changes' }).click();
+
+        // Verify updates in list
+        await expect(page.getByText('Qty: 2 liters')).toBeVisible();
+        await expect(page.getByText('DAIRY')).toBeVisible(); 
     });
 
     test('should prevent duplicate items', async ({ page }) => {
@@ -65,7 +97,7 @@ test.describe('Weekly Shopping List', () => {
         await input.fill('eggs');
         await addButton.click();
 
-        // Expect only one "Eggs" (or "eggs" depending on normalization, our logic keeps the first one)
+        // Expect only one "Eggs"
         const items = await page.getByText(/Eggs/i).all();
         expect(items.length).toBe(1);
     });
@@ -74,22 +106,16 @@ test.describe('Weekly Shopping List', () => {
         const input = page.getByPlaceholder('Add item (e.g., Milk)');
         const addButton = page.getByRole('button', { name: 'Add' });
 
-        // Add "Flour"
-        // Wait for history API call to ensure it's saved before reload
         const historyResponsePromise = page.waitForResponse(resp => resp.url().includes('/api/history') && resp.status() === 200);
 
         await input.fill('Flour');
         await addButton.click();
 
-        // Wait for UI to update AND history to be saved
         await expect(page.getByText('Flour')).toBeVisible();
         await historyResponsePromise;
 
-        // Reload to get fresh state (including history from server)
         await page.reload();
 
-        // Check datalist
-        // Note: Datalist options are hidden elements, but we can check if the datalist option exists in the DOM.
         const option = page.locator('datalist#shopping-history option[value="Flour"]');
         await expect(option).toHaveAttribute('value', 'Flour');
     });
@@ -97,32 +123,24 @@ test.describe('Weekly Shopping List', () => {
     test('should start a new week', async ({ page }) => {
         const newWeekButton = page.getByRole('button', { name: 'New Week' });
 
-        // Add an item first so we can see it clear
         const input = page.getByPlaceholder('Add item (e.g., Milk)');
         const addButton = page.getByRole('button', { name: 'Add' });
         await input.fill('Old Item');
         await addButton.click();
         await expect(page.getByText('Old Item')).toBeVisible();
 
-        // Handle confirm dialog
         page.on('dialog', dialog => dialog.accept());
 
-        // Wait for meta update
         const metaResponsePromise = page.waitForResponse(resp => resp.url().includes('/api/meta') && resp.status() === 200);
 
         await newWeekButton.click();
-
         await metaResponsePromise;
 
-        // Verify items cleared
         await expect(page.getByText('Old Item')).not.toBeVisible();
-
-        // Verify date updated (hard to test exact date string without mocking, 
-        // but element should be visible)
         await expect(page.getByText(/Week of/)).toBeVisible();
     });
 
-    test('should categorize items dynamically', async ({ page }) => {
+    test('should categorize items dynamically via modal', async ({ page }) => {
         const uniqueName = `Dragonfruit-${Date.now()}`;
         const input = page.getByPlaceholder('Add item (e.g., Milk)');
         const addButton = page.getByRole('button', { name: 'Add' });
@@ -131,49 +149,37 @@ test.describe('Weekly Shopping List', () => {
         await input.fill(uniqueName);
         await addButton.click();
 
-        // Check it's under Uncategorized
         await expect(page.getByRole('heading', { name: 'Uncategorized' })).toBeVisible();
         await expect(page.getByText(uniqueName)).toBeVisible();
 
-        // 2. Change category to something other than Uncategorized
-        // Find the select associated with item
-        const itemRow = page.locator('.group', { hasText: uniqueName });
-        const categorySelect = itemRow.locator('select');
+        // 2. Change category via modal
+        await page.getByText(uniqueName).click();
+        
+        await page.getByRole('button', { name: /Category/i }).click();
+        await page.getByRole('listbox').getByText('Produce', { exact: true }).click();
+        await page.getByRole('button', { name: 'Save Changes' }).click();
 
-        // Discover available options
-        const options = await categorySelect.locator('option').allInnerTexts();
-        const categoryToSelect = options.find(o => o !== 'Uncategorized') || 'Produce';
-
-        // Wait for update request
-        const updateResponsePromise = page.waitForResponse(resp => resp.url().includes('/api/items') && resp.request().method() === 'PUT');
-
-        await categorySelect.selectOption(categoryToSelect);
-
-        const response = await updateResponsePromise;
-        expect(response.status()).toBe(200);
-
-        // 3. Verify it moved to selected category header
-        await expect(page.getByRole('heading', { name: categoryToSelect })).toBeVisible();
+        // 3. Verify it moved
+        await expect(page.getByRole('heading', { name: 'Produce' })).toBeVisible();
 
         // 4. Reload to verify persistence
         await page.reload();
-        await expect(page.getByRole('heading', { name: categoryToSelect })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Produce' })).toBeVisible();
         await expect(page.getByText(uniqueName)).toBeVisible();
 
-        // 5. Add same item again (simulate next week or duplicate check)
-        // First delete it to allow re-adding
-        const deleteBtn = itemRow.getByRole('button', { name: 'Delete item' });
-        await deleteBtn.click();
+        // 5. Add again
+        await page.getByText(uniqueName).click();
+        page.on('dialog', dialog => dialog.accept());
+        await page.getByRole('button', { name: 'Delete' }).click();
         await expect(page.getByText(uniqueName)).not.toBeVisible();
 
-        // Add again
         await input.fill(uniqueName);
         await addButton.click();
 
-        // 6. Should be automatically in the same category now (Learned!)
-        await expect(page.getByRole('heading', { name: categoryToSelect })).toBeVisible();
+        // 6. Should be automatically in Produce
+        await expect(page.getByRole('heading', { name: 'Produce' })).toBeVisible();
         const newItemRow = page.locator('.group', { hasText: uniqueName });
-        await expect(newItemRow.locator('select')).toHaveValue(categoryToSelect);
+        await expect(newItemRow.getByText('PRODUCE')).toBeVisible();
     });
 
     test('should refresh the list', async ({ page, request }) => {
