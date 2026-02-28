@@ -5,6 +5,8 @@ on:
 
 jobs:
   update-snapshots:
+    permissions:
+      contents: write
     timeout-minutes: 60
     runs-on: ubuntu-latest
     
