@@ -71,4 +71,34 @@ test.describe('Visual Regression Testing', () => {
         // Note: Popovers are usually outside the modal in the DOM, so we capture the whole page or target the popover
         await expect(page).toHaveScreenshot('category-select-dropdown.png');
     });
+
+    test('should match categories management page snapshot', async ({ page }) => {
+        await page.goto('/categories');
+        await expect(page.getByRole('heading', { name: 'Manage Categories' })).toBeVisible();
+        await expect(page).toHaveScreenshot('categories-management-page.png');
+    });
+
+    test('should match items management page snapshot', async ({ page }) => {
+        await page.goto('/items');
+        await expect(page.getByRole('heading', { name: 'Manage Items' })).toBeVisible();
+        await expect(page).toHaveScreenshot('items-management-page.png');
+    });
+
+    test('should match items manager dropdown snapshot', async ({ page }) => {
+        await page.goto('/items');
+        
+        // Open the category select in the "Add New Master Item" form
+        const searchInput = page.getByPlaceholder('Item name (e.g. Milk)...');
+        await expect(searchInput).toBeVisible();
+
+        const selectTrigger = page.locator('button[data-slot="trigger"]').first();
+        await selectTrigger.click();
+
+        // Wait for options in portal
+        const firstOption = page.locator('li[role="option"]').first();
+        await expect(firstOption).toBeVisible();
+        await page.waitForTimeout(500); // Wait for transition
+
+        await expect(page).toHaveScreenshot('items-manager-category-dropdown.png');
+    });
 });

@@ -13,7 +13,7 @@ import {
     SelectItem,
     Chip
 } from "@heroui/react";
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface ShoppingListProps {
     items: ShoppingItem[];
@@ -123,8 +123,12 @@ export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateIt
             )}
 
             <ItemEditModal 
+                key={selectedItem?.id || 'none'}
                 isOpen={isOpen} 
-                onOpenChange={onOpenChange} 
+                onOpenChange={(open) => {
+                    onOpenChange();
+                    if (!open) setSelectedItem(null);
+                }} 
                 item={selectedItem} 
                 categories={effectiveCategoryNames}
                 onUpdate={onUpdateItem}
@@ -204,19 +208,12 @@ interface ItemEditModalProps {
 }
 
 function ItemEditModal({ isOpen, onOpenChange, item, categories, onUpdate, onDelete }: ItemEditModalProps) {
-    const [quantity, setQuantity] = useState('');
-    const [category, setCategory] = useState('');
+    const [quantity, setQuantity] = useState(item?.quantity || '1');
+    const [category, setCategory] = useState(item?.category || 'Uncategorized');
 
-    useEffect(() => {
-        if (item) {
-            setQuantity(item.quantity || '1');
-            setCategory(item.category || 'Uncategorized');
-        }
-    }, [item]);
-
-    if (!item) return null;
 
     const handleSave = (onClose: () => void) => {
+        if (!item) return;
         onUpdate(item.id, { 
             quantity, 
             category 
@@ -225,13 +222,18 @@ function ItemEditModal({ isOpen, onOpenChange, item, categories, onUpdate, onDel
     };
 
     const handleDelete = (onClose: () => void) => {
+        if (!item) return;
         if (confirm(`Delete ${item.name}?`)) {
             onDelete(item.id);
             onClose();
         }
     };
 
-    const uniqueOptions = Array.from(new Set([...categories, item.category || 'Uncategorized', 'Uncategorized']));
+    const uniqueOptions = Array.from(new Set([
+        ...categories, 
+        item?.category || 'Uncategorized', 
+        'Uncategorized'
+    ]));
 
     return (
         <Modal 
@@ -247,7 +249,7 @@ function ItemEditModal({ isOpen, onOpenChange, item, categories, onUpdate, onDel
             }}
         >
             <ModalContent>
-                {(onClose) => (
+                {(onClose) => !item ? null : (
                     <>
                         <ModalHeader className="flex flex-col gap-1">
                             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Item</h2>
@@ -261,6 +263,8 @@ function ItemEditModal({ isOpen, onOpenChange, item, categories, onUpdate, onDel
                                     </label>
                                     <Input
                                         value={item.name}
+                                        labelPlacement="outside"
+                                        label="Product Name"
                                         isReadOnly
                                         variant="bordered"
                                         description="Name cannot be changed here"
@@ -277,6 +281,8 @@ function ItemEditModal({ isOpen, onOpenChange, item, categories, onUpdate, onDel
                                     </label>
                                     <Input
                                         id="quantity-input"
+                                        label="Quantity"
+                                        labelPlacement="outside"
                                         placeholder="e.g., 2, 500g, 1 pack"
                                         value={quantity}
                                         onValueChange={setQuantity}
@@ -293,6 +299,8 @@ function ItemEditModal({ isOpen, onOpenChange, item, categories, onUpdate, onDel
                                     </label>
                                     <Select
                                         id="category-select"
+                                        label="Category"
+                                        labelPlacement="outside"
                                         selectedKeys={[category]}
                                         onSelectionChange={(keys) => setCategory(String(Array.from(keys)[0]))}
                                         variant="bordered"

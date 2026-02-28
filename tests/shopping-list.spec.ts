@@ -71,8 +71,8 @@ test.describe('Weekly Shopping List', () => {
         await qtyInput.fill('2 liters');
 
         // Update category
-        await page.getByRole('button', { name: /Category/i }).click();
-        await page.getByRole('listbox').getByText('Dairy', { exact: true }).click();
+        await page.click('[id="category-select"]');
+        await page.click('span:has-text("Dairy")');
 
         // Save
         await page.getByRole('button', { name: 'Save Changes' }).click();
@@ -155,8 +155,8 @@ test.describe('Weekly Shopping List', () => {
         // 2. Change category via modal
         await page.getByText(uniqueName).click();
         
-        await page.getByRole('button', { name: /Category/i }).click();
-        await page.getByRole('listbox').getByText('Produce', { exact: true }).click();
+        await page.click('[id="category-select"]');
+        await page.click('span:has-text("Produce")');
         await page.getByRole('button', { name: 'Save Changes' }).click();
 
         // 3. Verify it moved
