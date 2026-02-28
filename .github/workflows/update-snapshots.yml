@@ -1,0 +1,65 @@
+name: Update Playwright Snapshots
+
+on:
+  workflow_dispatch: # Allows manual trigger from the Actions tab
+
+jobs:
+  update-snapshots:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    
+    # Same services as your CI to ensure tests can run
+    services:
+      mongodb:
+        image: mongo:5
+        ports:
+          - 27017:27017
+          
+    env:
+      MONGODB_URI: mongodb://localhost:27017/weekly-shopping-test
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        # Check out the branch from which the workflow was initiated
+        ref: ${{ github.head_ref || github.ref_name }}
+        # Needs fetch-depth 0 if you are going to commit back, though 1 might work for simple commits
+        
+    - uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Get installed Playwright version
+      id: playwright-version
+      shell: bash
+      run: |
+        PLAYWRIGHT_VERSION=$(node -p "require('@playwright/test/package.json').version")
+        echo "PLAYWRIGHT_VERSION=$PLAYWRIGHT_VERSION" >> $GITHUB_ENV
+
+    - name: Cache Playwright browsers
+      uses: actions/cache@v4
+      id: playwright-cache
+      with:
+        path: |
+          ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
+
+    - name: Install Playwright Browsers
+      if: steps.playwright-cache.outputs.cache-hit != 'true'
+      run: npx playwright install --with-deps
+
+    - name: Build
+      run: npm run build
+
+    - name: Run Playwright tests and update snapshots
+      run: npx playwright test --update-snapshots
+
+    - name: Commit newly generated or updated snapshots
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: "test(vrt): ✅ update visual regression snapshots [skip ci]"
+        file_pattern: "**/*snapshots/*"
