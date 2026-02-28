@@ -125,6 +125,7 @@ export default function ItemsManagerPage() {
                 <CardBody className="p-0">
                     <div className="p-6 border-b dark:border-gray-800 bg-gray-50/30 dark:bg-gray-900/30">
                         <Input
+                            data-testid="search-input"
                             type="text"
                             placeholder="Search items or categories..."
                             value={searchQuery}
@@ -180,6 +181,7 @@ export default function ItemsManagerPage() {
                                             <>
                                                 <Button
                                                     isIconOnly
+                                                    title="Save Changes"
                                                     variant="flat"
                                                     color="success"
                                                     size="sm"
@@ -201,6 +203,7 @@ export default function ItemsManagerPage() {
                                             <>
                                                 <Button
                                                     isIconOnly
+                                                    title="Edit Item"
                                                     variant="light"
                                                     size="sm"
                                                     onPress={() => startEditing(item.name, item.category)}
@@ -210,6 +213,7 @@ export default function ItemsManagerPage() {
                                                 </Button>
                                                 <Button
                                                     isIconOnly
+                                                    title="Delete Item"
                                                     variant="light"
                                                     color="danger"
                                                     size="sm"

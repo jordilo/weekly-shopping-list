@@ -32,6 +32,8 @@ Every new feature or significant logic change **must** include tests in the `tes
 - **Happy Path**: At least one test demonstrating the feature working as intended.
 - **Error Handling**: At least one test demonstrating how the system handles invalid input or server errors.
 - **Playwright**: Use Playwright for E2E tests, ensuring the UI reflects the expected state.
+- **Accessibility first** All the test should be based on accessibility selectors and try to avoid using css selectors, xpath or any other method that is not based on accessibility.
+- **Test data**: All the test except vrt-spect.ts file should act as e2e, this means that all the test data should be created in the test and deleted after the test using connection with backend and database.
 
 ### 3. Style Guidelines (Premium & Modern)
 We follow a **"Hero UI" (formerly NextUI)** aesthetic:
