@@ -132,4 +132,13 @@ test.describe('Visual Regression Testing', () => {
 
         await expect(page).toHaveScreenshot('items-manager-category-dropdown.png');
     });
+
+    test('should match settings page snapshot', async ({ page }) => {
+        await page.goto('/settings');
+        await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+        
+        // The next-themes logic needs a tiny bit of hydration time
+        await page.waitForTimeout(500);
+        await expect(page).toHaveScreenshot('settings-page.png');
+    });
 });
