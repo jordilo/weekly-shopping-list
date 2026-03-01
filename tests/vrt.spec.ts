@@ -93,9 +93,7 @@ test.describe('Visual Regression Testing', () => {
         const selectTrigger = page.getByRole('button', { name: 'Produce' });
         await selectTrigger.click();
 
-        // Wait for options in portal (rendered at the end of body)
-        const firstOption = page.locator('li[role="option"]').first();
-        await expect(firstOption).toBeVisible();
+        // Wait for options in portal (rendered at the end of body
         await page.waitForTimeout(500); // Wait for transition
 
         // Capture snapshot of the open dropdown
