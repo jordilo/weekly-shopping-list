@@ -18,6 +18,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             name: updated.name,
             completed: updated.completed,
             category: updated.category,
+            quantity: updated.quantity || '1',
             createdAt: updated.createdAt,
         });
     } catch {

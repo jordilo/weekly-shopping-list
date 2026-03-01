@@ -5,6 +5,7 @@ const ItemSchema = new Schema({
     name: { type: String, required: true },
     completed: { type: Boolean, default: false },
     category: String,
+    quantity: { type: String, default: '1' },
     createdAt: { type: Number, default: () => Date.now() },
 });
 

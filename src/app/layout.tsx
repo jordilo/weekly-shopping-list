@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { BottomNavbar } from "@/components/bottom-navbar";
-import { ShoppingListProvider } from "@/lib/hooks/use-shopping-list";
 import { NotificationManager } from "@/components/notification-manager";
 
 const geistSans = Geist({
@@ -38,23 +37,25 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+import { Providers } from "@/components/providers";
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans`}
       >
-        <ShoppingListProvider>
+        <Providers>
           <NotificationManager />
           <div className="pb-32 min-h-screen">
             {children}
           </div>
           <BottomNavbar />
-        </ShoppingListProvider>
+        </Providers>
       </body>
     </html>
   );

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShoppingBasket, List, Settings } from 'lucide-react';
+import { ShoppingBasket, List, Tags, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function BottomNavbar() {
@@ -11,7 +11,8 @@ export function BottomNavbar() {
     const navItems = [
         { label: 'List', href: '/', icon: ShoppingBasket },
         { label: 'Items', href: '/items', icon: List },
-        { label: 'Categories', href: '/categories', icon: Settings },
+        { label: 'Categories', href: '/categories', icon: Tags },
+        { label: 'Settings', href: '/settings', icon: Settings },
     ];
 
     return (
