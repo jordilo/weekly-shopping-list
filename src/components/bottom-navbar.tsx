@@ -2,15 +2,19 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShoppingBasket, List, Tags, Settings } from 'lucide-react';
+import { ShoppingBasket, List, Tags, Settings, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function BottomNavbar() {
     const pathname = usePathname();
 
+    // Don't show on login page
+    if (pathname === '/login') return null;
+
     const navItems = [
-        { label: 'List', href: '/', icon: ShoppingBasket },
+        { label: 'Shop', href: '/', icon: ShoppingBasket },
         { label: 'Items', href: '/items', icon: List },
+        { label: 'Lists', href: '/lists', icon: ClipboardList },
         { label: 'Categories', href: '/categories', icon: Tags },
         { label: 'Settings', href: '/settings', icon: Settings },
     ];
@@ -30,7 +34,7 @@ export function BottomNavbar() {
                                 isActive ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400"
                             )}
                         >
-                            <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                            <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
                             <span className="text-[10px] font-medium">{item.label}</span>
                         </Link>
                     );

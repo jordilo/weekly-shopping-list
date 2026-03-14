@@ -3,9 +3,10 @@
 import { AddItemForm } from '@/components/add-item-form';
 import { ShoppingList } from '@/components/shopping-list';
 import { useShoppingList } from '@/lib/hooks/use-shopping-list';
-import { RefreshCw, Settings, List as ListIcon } from 'lucide-react';
+import { RefreshCw, Settings, List as ListIcon, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useState, useRef, useEffect } from 'react';
 
 export default function Home() {
   const { items, historySuggestions, weekStartDate, categories, addItem, toggleItem, deleteItem,
@@ -13,8 +14,26 @@ export default function Home() {
     resetList,
     updateItem,
     refresh,
-    isLoaded
+    isLoaded,
+    lists,
+    activeListId,
+    activeList,
+    setActiveListId,
   } = useShoppingList();
+
+  const [showListPicker, setShowListPicker] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  // Close picker when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowListPicker(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   if (!isLoaded) {
     return <div className="flex h-screen items-center justify-center">Loading...</div>;
@@ -41,6 +60,44 @@ export default function Home() {
           <p className="mt-2 text-gray-500 dark:text-gray-400">
             Week of {formattedDate}
           </p>
+
+          {/* List Selector */}
+          {lists.length > 1 && (
+            <div className="relative mt-3" ref={pickerRef}>
+              <button
+                onClick={() => setShowListPicker(!showListPicker)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                id="list-selector"
+              >
+                {activeList?.name || 'Select list'}
+                <ChevronDown size={16} className={`transition-transform ${showListPicker ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showListPicker && (
+                <div className="absolute left-0 top-full mt-1 z-50 w-64 bg-white dark:bg-gray-900 rounded-xl shadow-xl ring-1 ring-gray-200 dark:ring-gray-700 py-1 overflow-hidden">
+                  {lists.map(list => (
+                    <button
+                      key={list.id}
+                      onClick={() => {
+                        setActiveListId(list.id);
+                        setShowListPicker(false);
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${
+                        list.id === activeListId
+                          ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                      }`}
+                    >
+                      <span className="truncate">{list.name}</span>
+                      {list.role === 'member' && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500 ml-2 flex-shrink-0">shared</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mt-4 sm:mt-0 flex gap-2 justify-center items-center">
