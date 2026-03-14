@@ -30,36 +30,37 @@ export async function POST(request: Request) {
         const item = await Item.create(body);
 
         // --- Trigger Push Notifications ---
-        const subscriptions = await PushSubscription.find({});
+        const isConfigured = configureWebPush();
+        if (!isConfigured) {
+            console.warn('Push: VAPID not configured, skipping notification.');
+        } else {
+            const subscriptions = await PushSubscription.find({});
+            console.log(`Push: found ${subscriptions.length} subscription(s) to notify.`);
 
-        // Initialize push notifications lazily
-        configureWebPush();
-
-        const payload = JSON.stringify({
-            title: 'New Item Added',
-            body: `${item.name} was added to the list.`,
-            url: '/'
-        });
-
-        // Send notifications to all subscribers in parallel
-        Promise.all(subscriptions.map(sub => {
-            return webpush.sendNotification(
-                {
-                    endpoint: sub.endpoint,
-                    keys: {
-                        p256dh: sub.keys.p256dh,
-                        auth: sub.keys.auth
-                    }
-                },
-                payload
-            ).catch(err => {
-                console.error('Error sending push notification:', err);
-                if (err.statusCode === 410 || err.statusCode === 404) {
-                    // Subscription has expired or is no longer valid
-                    return PushSubscription.deleteOne({ endpoint: sub.endpoint });
-                }
+            const payload = JSON.stringify({
+                title: 'New Item Added',
+                body: `${item.name} was added to the list.`,
+                url: '/'
             });
-        })).catch(err => console.error('Error in push broadcast:', err));
+
+            Promise.all(subscriptions.map(sub => {
+                return webpush.sendNotification(
+                    {
+                        endpoint: sub.endpoint,
+                        keys: {
+                            p256dh: sub.keys.p256dh,
+                            auth: sub.keys.auth
+                        }
+                    },
+                    payload
+                ).catch(err => {
+                    console.error('Push: error sending notification:', err.statusCode, err.message);
+                    if (err.statusCode === 410 || err.statusCode === 404) {
+                        return PushSubscription.deleteOne({ endpoint: sub.endpoint });
+                    }
+                });
+            })).catch(err => console.error('Push: broadcast error:', err));
+        }
 
         return NextResponse.json({
             id: item._id.toString(),
