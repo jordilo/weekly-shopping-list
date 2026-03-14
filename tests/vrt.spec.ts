@@ -49,14 +49,16 @@ test.describe('Visual Regression Testing', () => {
 
         await page.goto('/');
         await page.evaluate(() => localStorage.clear());
-        // Wait for potential initial animations or loading states
-        await page.waitForTimeout(1000);
+        // Wait for all API fetches (including the auto-refresh poll) to settle
+        await page.waitForLoadState('networkidle');
     });
 
     test('should match shopping list view snapshot', async ({ page }) => {
         // Wait for static mock items to appear
         await expect(page.getByText('Apples')).toBeVisible();
         await expect(page.getByText('Milk')).toBeVisible();
+        // Ensure no pending fetches that could change state
+        await page.waitForLoadState('networkidle');
 
         // Capture snapshot
         await expect(page).toHaveScreenshot('shopping-list-view.png', {
@@ -95,6 +97,7 @@ test.describe('Visual Regression Testing', () => {
 
         // Wait for options in portal (rendered at the end of body
         await page.waitForTimeout(500); // Wait for transition
+        await page.waitForLoadState('networkidle');
 
         // Capture snapshot of the open dropdown
         // Note: Popovers are usually outside the modal in the DOM, so we capture the whole page or target the popover

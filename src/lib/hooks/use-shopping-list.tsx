@@ -187,6 +187,42 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
         refresh();
     }, [refresh]);
 
+    // Auto-refresh: poll every 30 seconds when the tab is visible,
+    // and trigger an immediate refresh when the tab regains focus.
+    useEffect(() => {
+        const POLL_INTERVAL_MS = 30_000;
+
+        const pollItems = async () => {
+            if (document.visibilityState !== 'visible') return;
+            try {
+                const freshItems = await adapter.getItems();
+                setItems(prev => {
+                    // Only update if data actually changed (avoid unnecessary re-renders)
+                    const prevJson = JSON.stringify(prev.map(i => i.id + i.completed + i.name + i.quantity + i.category));
+                    const nextJson = JSON.stringify(freshItems.map((i: ShoppingItem) => i.id + i.completed + i.name + i.quantity + i.category));
+                    return prevJson === nextJson ? prev : freshItems;
+                });
+            } catch {
+                // Silently ignore polling errors
+            }
+        };
+
+        const interval = setInterval(pollItems, POLL_INTERVAL_MS);
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                pollItems();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [adapter]);
+
     const addItem = useCallback(async (name: string) => {
         const normalizedName = name.trim();
         const existing = items.find(i => i.name.toLowerCase() === normalizedName.toLowerCase());
