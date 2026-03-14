@@ -2,8 +2,11 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Visual Regression Testing', () => {
     test.beforeEach(async ({ page }) => {
+        await page.request.post('/api/auth/test-login', {
+            data: { email: 'test@example.com', name: 'Test Setup User' }
+        });
         // Mock API responses for stable VRT snapshots
-        await page.route('/api/items', async (route) => {
+        await page.route('**/api/items*', async (route) => {
             if (route.request().method() === 'GET') {
                 await route.fulfill({
                     json: [
@@ -17,7 +20,7 @@ test.describe('Visual Regression Testing', () => {
             }
         });
 
-        await page.route('/api/categories', async (route) => {
+        await page.route('**/api/categories*', async (route) => {
             if (route.request().method() === 'GET') {
                 await route.fulfill({
                     json: [
@@ -31,7 +34,7 @@ test.describe('Visual Regression Testing', () => {
             }
         });
 
-        await page.route('/api/history', async (route) => {
+        await page.route('**/api/history*', async (route) => {
             await route.fulfill({
                 json: [
                     { name: 'Apples', category: 'Produce' },
@@ -41,13 +44,26 @@ test.describe('Visual Regression Testing', () => {
             });
         });
 
-        await page.route('/api/meta', async (route) => {
+        await page.route('/api/meta*', async (route) => {
             await route.fulfill({
                 json: { weekStartDate: '2026-02-23' }
             });
         });
 
+        await page.route('/api/lists', async (route) => {
+            await route.fulfill({
+                json: [{ id: 'list-1', name: 'My Shopping List', role: 'owner', ownerId: 'user-1', createdAt: 1000 }]
+            });
+        });
+
+        await page.route('/api/auth/me', async (route) => {
+            await route.fulfill({
+                json: { id: 'user-1', email: 'test@example.com', defaultListId: 'list-1' }
+            });
+        });
+
         await page.goto('/');
+        await expect(page.getByText('Loading...')).not.toBeVisible();
         await page.evaluate(() => localStorage.clear());
         // Wait for all API fetches (including the auto-refresh poll) to settle
         await page.waitForLoadState('networkidle');
@@ -95,8 +111,10 @@ test.describe('Visual Regression Testing', () => {
         const selectTrigger = page.getByRole('button', { name: 'Produce' });
         await selectTrigger.click();
 
-        // Wait for options in portal (rendered at the end of body
-        await page.waitForTimeout(500); // Wait for transition
+        // Wait for options in portal
+        const firstOption = page.locator('li[role="option"]').first();
+        await expect(firstOption).toBeVisible();
+        await page.waitForTimeout(1000); // Wait for transition to settle
         await page.waitForLoadState('networkidle');
 
         // Capture snapshot of the open dropdown

@@ -25,6 +25,9 @@ function parseRGB(rgbString: string) {
 
 test.describe('Settings and Theme', () => {
     test.beforeEach(async ({ page }) => {
+        await page.request.post('/api/auth/test-login', {
+            data: { email: 'test@example.com', name: 'Test Setup User' }
+        });
         await page.goto('/settings');
         // Wait for hydration (important for next-themes)
         await page.waitForTimeout(500); 

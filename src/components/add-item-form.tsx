@@ -3,18 +3,25 @@ import { Plus } from 'lucide-react';
 import { Input, Button } from '@heroui/react';
 
 interface AddItemFormProps {
-    onAdd: (name: string) => void;
+    onAdd: (name: string) => Promise<void> | void;
     suggestions?: { name: string; category: string }[];
 }
 
 export function AddItemForm({ onAdd, suggestions = [] }: AddItemFormProps) {
     const [name, setName] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name.trim()) return;
-        onAdd(name.trim());
-        setName('');
+        if (!name.trim() || isSubmitting) return;
+        
+        setIsSubmitting(true);
+        try {
+            await onAdd(name.trim());
+            setName('');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -30,6 +37,7 @@ export function AddItemForm({ onAdd, suggestions = [] }: AddItemFormProps) {
                     classNames={{
                         inputWrapper: "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800",
                     }}
+                    isDisabled={isSubmitting}
                 />
                 <datalist id="shopping-history">
                     {suggestions.map((item) => (
@@ -39,10 +47,11 @@ export function AddItemForm({ onAdd, suggestions = [] }: AddItemFormProps) {
             </div>
             <Button
                 type="submit"
-                disabled={!name.trim()}
+                disabled={!name.trim() || isSubmitting}
+                isLoading={isSubmitting}
                 color="primary"
                 className="font-bold"
-                startContent={<Plus size={20} />}
+                startContent={!isSubmitting ? <Plus size={20} /> : undefined}
             >
                 <span className="hidden sm:inline">Add</span>
             </Button>

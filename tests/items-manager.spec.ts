@@ -2,6 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Items Manager', () => {
     test.beforeEach(async ({ page }) => {
+        await page.request.post('/api/auth/test-login', {
+            data: { email: 'test@example.com', name: 'Test Setup User' }
+        });
         await page.goto('/items');
         // Clear local storage just in case
         await page.evaluate(() => localStorage.clear());

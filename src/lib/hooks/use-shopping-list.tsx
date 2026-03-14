@@ -295,6 +295,7 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
         };
     }, [adapter, activeListId]);
 
+
     const addItem = useCallback(async (name: string) => {
         if (!activeListId) return;
 
