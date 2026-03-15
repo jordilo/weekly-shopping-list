@@ -39,6 +39,7 @@ export const viewport: Viewport = {
 
 import { Providers } from "@/components/providers";
 import { Header } from "@/components/header";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 export default function RootLayout({
   children,
@@ -51,6 +52,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans`}
       >
         <Providers>
+          <SpeedInsights />
           <NotificationManager />
           <Header />
           <div className="pt-12 pb-24 min-h-screen">
