@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { History } from '@/lib/models';
+import { getSession } from '@/lib/auth';
 
 export async function GET() {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     await dbConnect();
     try {
-        const history = await History.find({}).sort({ name: 1 });
-        // Return objects { name, category }
+        const history = await History.find({ userId: session.userId }).sort({ name: 1 });
         return NextResponse.json(history.map(h => ({ name: h.name, category: h.category })));
     } catch {
         return NextResponse.json({ error: 'Failed to fetch history' }, { status: 500 });
@@ -14,15 +17,16 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     await dbConnect();
     try {
         const { name, category } = await request.json();
-        // Use upsert to prevent duplicates/errors
         if (name) {
-            // Always update category to the latest one used
             await History.updateOne(
-                { name: name },
-                { $set: { name: name, category: category } },
+                { name, userId: session.userId },
+                { $set: { name, category, userId: session.userId } },
                 { upsert: true }
             );
         }

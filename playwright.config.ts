@@ -21,5 +21,9 @@ export default defineConfig({
         command: 'npm run dev',
         url: 'http://localhost:3000',
         reuseExistingServer: !process.env.CI,
+        env: {
+            TEST_USER_EMAIL: 'playwright@test.com',
+            JWT_SECRET: process.env.JWT_SECRET || 'test-jwt-secret-placeholder'
+        }
     },
 });

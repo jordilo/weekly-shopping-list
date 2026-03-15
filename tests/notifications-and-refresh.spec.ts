@@ -12,7 +12,17 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Push notification triggers', () => {
     let createdItemId: string;
+    let listId: string;
     const itemName = `PushTest-${Date.now()}`;
+
+    test.beforeEach(async ({ request }) => {
+        await request.post('/api/auth/test-login', {
+            data: { email: 'test@example.com', name: 'Test Setup User' }
+        });
+        const listsRes = await request.get('/api/lists');
+        const lists = await listsRes.json();
+        listId = lists[0]?.id;
+    });
 
     test.afterAll(async ({ request }) => {
         // Cleanup: delete the test item if it exists
@@ -28,6 +38,7 @@ test.describe('Push notification triggers', () => {
                 completed: false,
                 category: 'Uncategorized',
                 createdAt: Date.now(),
+                listId,
             },
         });
 
@@ -44,7 +55,7 @@ test.describe('Push notification triggers', () => {
         // Create a fresh item for this test
         const reAddName = `ReAddTest-${Date.now()}`;
         const createRes = await request.post('/api/items', {
-            data: { name: reAddName, completed: false, category: 'Uncategorized', createdAt: Date.now() },
+            data: { name: reAddName, completed: false, category: 'Uncategorized', createdAt: Date.now(), listId },
         });
         const created = await createRes.json();
         const id = created.id;
@@ -74,7 +85,7 @@ test.describe('Push notification triggers', () => {
         // Create item
         const name = `CompleteTest-${Date.now()}`;
         const createRes = await request.post('/api/items', {
-            data: { name, completed: false, category: 'Uncategorized', createdAt: Date.now() },
+            data: { name, completed: false, category: 'Uncategorized', createdAt: Date.now(), listId },
         });
         const created = await createRes.json();
         const id = created.id;
@@ -93,6 +104,24 @@ test.describe('Push notification triggers', () => {
 });
 
 test.describe('Auto-refresh', () => {
+    let listId: string;
+
+    test.beforeEach(async ({ page, request }) => {
+        // Authenticate the browser session (UI)
+        await page.request.post('/api/auth/test-login', {
+            data: { email: 'test@example.com', name: 'Test Setup User' }
+        });
+        
+        // Authenticate the isolated request session
+        await request.post('/api/auth/test-login', {
+            data: { email: 'test@example.com', name: 'Test Setup User' }
+        });
+
+        const listsRes = await request.get('/api/lists');
+        const lists = await listsRes.json();
+        listId = lists[0]?.id;
+    });
+
     test('list updates when poll fires (simulated via visibilitychange)', async ({ page, request }) => {
         await page.goto('/');
         await page.waitForSelector('[placeholder="Add item (e.g., Milk)"]', { timeout: 10000 });
@@ -106,6 +135,7 @@ test.describe('Auto-refresh', () => {
                 completed: false,
                 category: 'Uncategorized',
                 createdAt: Date.now(),
+                listId,
             },
         });
         expect(res.ok()).toBeTruthy();
@@ -139,6 +169,7 @@ test.describe('Auto-refresh', () => {
                 completed: false,
                 category: 'Uncategorized',
                 createdAt: Date.now(),
+                listId,
             },
         });
         expect(res.ok()).toBeTruthy();
