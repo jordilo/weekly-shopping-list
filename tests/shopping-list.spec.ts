@@ -143,13 +143,17 @@ test.describe('Weekly Shopping List', () => {
 
     test('should start a new week', async ({ page }) => {
         const itemName = `OldItem-${Date.now()}`;
-        const newWeekButton = page.getByRole('button', { name: 'New Week' });
-
+        
         const input = page.getByPlaceholder('Add item (e.g., Milk)');
         const addButton = page.getByRole('button', { name: 'Add' });
         await input.fill(itemName);
         await addButton.click();
         await expect(page.getByText(itemName)).toBeVisible();
+
+        // Open menu
+        await page.getByRole('button', { name: 'Open menu' }).click();
+        const newWeekButton = page.getByRole('button', { name: 'New Week' });
+        await expect(newWeekButton).toBeVisible();
 
         page.on('dialog', dialog => dialog.accept());
         

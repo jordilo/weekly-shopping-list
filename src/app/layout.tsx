@@ -38,6 +38,7 @@ export const viewport: Viewport = {
 };
 
 import { Providers } from "@/components/providers";
+import { Header } from "@/components/header";
 
 export default function RootLayout({
   children,
@@ -51,7 +52,8 @@ export default function RootLayout({
       >
         <Providers>
           <NotificationManager />
-          <div className="pb-32 min-h-screen">
+          <Header />
+          <div className="pt-12 pb-24 min-h-screen">
             {children}
           </div>
           <BottomNavbar />
