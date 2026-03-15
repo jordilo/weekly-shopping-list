@@ -3,6 +3,7 @@
 import { AddItemForm } from '@/components/add-item-form';
 import { ShoppingList } from '@/components/shopping-list';
 import { useShoppingList } from '@/lib/hooks/use-shopping-list';
+import { PageContainer } from '@/components/page-container';
 
 export default function Home() {
   const { 
@@ -17,11 +18,11 @@ export default function Home() {
   } = useShoppingList();
 
   if (!isLoaded) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+    return <div className="flex h-screen items-center justify-center text-gray-500">Loading...</div>;
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-4 sm:py-8">
+    <PageContainer>
       <div className="flex flex-col gap-8 items-center">
         <AddItemForm onAdd={addItem} suggestions={historySuggestions} />
 
@@ -35,6 +36,6 @@ export default function Home() {
           />
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

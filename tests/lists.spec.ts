@@ -18,7 +18,7 @@ test.describe('Shopping Lists Management', () => {
 
         // Create a new list
         const uniqueListName = `Test List ${Date.now()}`;
-        await page.fill('input[placeholder="List name..."]', uniqueListName);
+        await page.fill('[data-testid="new-list-input"]', uniqueListName);
         await page.click('button:has-text("Create")');
 
         // Verify it was created
@@ -26,11 +26,11 @@ test.describe('Shopping Lists Management', () => {
 
         // Rename the list
         const renamedListName = uniqueListName + ' Renamed';
-        const listRow = page.locator('.flex.items-center.p-3').filter({ hasText: uniqueListName });
+        const listRow = page.locator('.flex.items-center.p-4.px-6').filter({ hasText: uniqueListName });
         
         await listRow.locator('button[title="Rename"]').click();
         // The listRow locator becomes stale because the text is replaced by an input.
-        const editInput = page.locator('input[type="text"]:not([placeholder])').first();
+        const editInput = page.locator('[data-testid="rename-input"]').first();
         await editInput.fill(renamedListName);
         await editInput.press('Enter');
 
@@ -39,7 +39,7 @@ test.describe('Shopping Lists Management', () => {
         // Delete the list
         // Intercept confirm dialog
         page.on('dialog', dialog => dialog.accept());
-        await page.locator('.flex.items-center.p-3').filter({ hasText: renamedListName }).locator('button[title="Delete list"]').click();
+        await page.locator('.flex.items-center.p-4.px-6').filter({ hasText: renamedListName }).locator('button[title="Delete list"]').click();
 
         await expect(page.locator('text=' + renamedListName)).not.toBeVisible();
     });
@@ -49,13 +49,13 @@ test.describe('Shopping Lists Management', () => {
 
         // Create a new list
         const uniqueListName = `Default Test List ${Date.now()}`;
-        await page.fill('input[placeholder="List name..."]', uniqueListName);
+        await page.fill('[data-testid="new-list-input"]', uniqueListName);
         await page.click('button:has-text("Create")');
 
         // Verify it was created
         await expect(page.locator('text=' + uniqueListName)).toBeVisible();
 
-        const listRow = page.locator('.flex.items-center.p-3').filter({ hasText: uniqueListName });
+        const listRow = page.locator('.flex.items-center.p-4.px-6').filter({ hasText: uniqueListName });
         
         // Set as default, wait for api to finish so we don't navigate too early
         const defaultPromise = page.waitForResponse(r => r.url().includes('default') && r.status() === 200);

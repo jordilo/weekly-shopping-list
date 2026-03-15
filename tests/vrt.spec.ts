@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Visual Regression Testing', () => {
     test.beforeEach(async ({ page }) => {
         await page.request.post('/api/auth/test-login', {
-            data: { email: 'test@example.com', name: 'Test Setup User' }
+            data: { email: 'test@example.com', name: 'Test Setup User',  }
         });
         // Mock API responses for stable VRT snapshots
         await page.route('**/api/items*', async (route) => {
@@ -58,7 +58,7 @@ test.describe('Visual Regression Testing', () => {
 
         await page.route('/api/auth/me', async (route) => {
             await route.fulfill({
-                json: { id: 'user-1', email: 'test@example.com', defaultListId: 'list-1' }
+                json: { id: 'user-1', email: 'test@example.com', name: 'Test User', defaultListId: 'list-1' }
             });
         });
 

@@ -19,6 +19,7 @@ jobs:
           
     env:
       MONGODB_URI: mongodb://localhost:27017/weekly-shopping-test
+      JWT_SECRET: ${{ secrets.JWT_SECRET || 'test-jwt-secret-placeholder' }}
 
     steps:
     - uses: actions/checkout@v4

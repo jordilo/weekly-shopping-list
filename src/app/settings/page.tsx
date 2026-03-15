@@ -3,8 +3,10 @@
 import { useTheme } from "next-themes";
 import { useEffect, useState, useCallback } from "react";
 import { Card, CardBody, CardHeader, RadioGroup, Radio } from "@heroui/react";
+import Image from "next/image";
 import { Moon, Sun, Monitor, LogOut, Mail, Check, X, Trash2 } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
+import { PageContainer } from "@/components/page-container";
 
 interface PendingInvitation {
     id: string;
@@ -68,10 +70,9 @@ export default function SettingsPage() {
     }
 
     return (
-        <main className="min-h-screen p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto space-y-6">
-            <header className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
-                <p className="text-gray-500 dark:text-gray-400 mt-2">Manage your app preferences.</p>
+        <PageContainer className="space-y-6">
+            <header className="mb-2">
+                <p className="text-gray-500 dark:text-gray-400">Manage your app preferences.</p>
             </header>
 
             {/* Account */}
@@ -111,7 +112,7 @@ export default function SettingsPage() {
             {/* Pending Invitations */}
             {invitations.length > 0 && (
                 <section>
-                    <Card className="bg-white dark:bg-[#18181b] shadow-sm ring-1 ring-gray-200 dark:ring-gray-800 border-none">
+                    <Card className="bg-white dark:bg-[#18181b] shadow-sm ring-1 ring-gray-200 dark:ring-gray-800 border-none" data-testid="pending-invites-card">
                         <CardHeader className="pb-0 pt-6 px-6 flex-col items-start">
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
                                 <Mail size={20} />
@@ -151,8 +152,8 @@ export default function SettingsPage() {
 
             {/* Subscriptions */}
             {subscriptions.length > 0 && (
-                <section>
-                    <Card className="bg-white dark:bg-[#18181b] shadow-sm ring-1 ring-gray-200 dark:ring-gray-800 border-none">
+                <section id="subscriptions-section">
+                    <Card className="bg-white dark:bg-[#18181b] shadow-sm ring-1 ring-gray-200 dark:ring-gray-800 border-none" data-testid="subscriptions-card">
                         <CardHeader className="pb-0 pt-6 px-6 flex-col items-start">
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Subscriptions</h2>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Lists shared with you that you&apos;re subscribed to.</p>
@@ -166,9 +167,10 @@ export default function SettingsPage() {
                                             onClick={() => handleUnsubscribe(sub.id)}
                                             className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors flex items-center gap-1 text-xs"
                                             title="Unsubscribe"
+                                            data-testid={`unsubscribe-${sub.id}`}
                                         >
                                             <Trash2 size={14} />
-                                            <span className="hidden sm:inline">Unsubscribe</span>
+                                            <span>Unsubscribe</span>
                                         </button>
                                     </div>
                                 ))}
@@ -218,6 +220,6 @@ export default function SettingsPage() {
                     </CardBody>
                 </Card>
             </section>
-        </main>
+        </PageContainer>
     );
 }

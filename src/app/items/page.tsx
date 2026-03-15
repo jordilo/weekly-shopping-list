@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from 'react';
-import { Plus, Trash2, ArrowLeft, Search, Edit2, Check, X } from 'lucide-react';
+import { Plus, Trash2, Search, Edit2, Check, X } from 'lucide-react';
 import { useShoppingList } from '@/lib/hooks/use-shopping-list';
-import Link from 'next/link';
 import { Input, Button, Select, SelectItem, Card, CardHeader, CardBody, Divider } from '@heroui/react';
+import { PageContainer } from '@/components/page-container';
 
 export default function ItemsManagerPage() {
     const { historySuggestions, categories, deleteHistoryItem, addHistoryItem, renameHistoryItem, isLoaded } = useShoppingList();
@@ -60,23 +60,11 @@ export default function ItemsManagerPage() {
     };
 
     if (!isLoaded) {
-        return <div className="flex h-screen items-center justify-center">Loading...</div>;
+        return <div className="flex h-screen items-center justify-center text-gray-500">Loading...</div>;
     }
 
     return (
-        <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12 pb-32">
-            <header className="mb-8 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Link
-                        href="/"
-                        className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors"
-                    >
-                        <ArrowLeft size={24} />
-                    </Link>
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Manage Items</h1>
-                </div>
-            </header>
-
+        <PageContainer className="pb-32">
             <Card className="border border-gray-200 dark:border-gray-800 shadow-sm mb-8">
                 <CardHeader className="p-6 bg-gray-50/50 dark:bg-gray-900/50 flex flex-col gap-4">
                     <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Add New Master Item</h2>
@@ -240,10 +228,6 @@ export default function ItemsManagerPage() {
                     </div>
                 </CardBody>
             </Card>
-
-            <p className="text-center text-sm text-gray-500 font-medium">
-                Items managed here will appear as suggestions when you add items to your weekly shop.
-            </p>
-        </div>
+        </PageContainer>
     );
 }

@@ -24,23 +24,23 @@ test.describe('Invitations & Subscriptions', () => {
         // 2. User A creates a list to share
         await pageA.goto('/lists');
         const sharedListName = `Shared List ${Date.now()}`;
-        await pageA.fill('input[placeholder="List name..."]', sharedListName);
+        await pageA.fill('[data-testid="new-list-input"]', sharedListName);
         await pageA.click('button:has-text("Create")');
         await expect(pageA.locator('text=' + sharedListName)).toBeVisible();
 
         // Navigate to settings of the newly created list
-        const listRowA = pageA.locator('.flex.items-center.p-3').filter({ hasText: sharedListName });
+        const listRowA = pageA.locator('.flex.items-center.p-4.px-6').filter({ hasText: sharedListName });
         await listRowA.locator('a[title="List settings"]').click();
         await expect(pageA).toHaveURL(/.*\/settings$/);
 
         // 3. User A invites User B
-        await pageA.fill('input[type="email"]', userBEmail);
+        await pageA.fill('[data-testid="invite-input"]', userBEmail);
         const invitePromise = pageA.waitForResponse(resp => resp.url().includes('/api/lists/') && resp.url().includes('/invite') && resp.status() === 200);
         await pageA.locator('button', { hasText: /^Invite$/ }).click();
         await invitePromise;
         
         // Invitation should appear in pending list
-        await expect(pageA.getByText('Pending Invitations')).toBeVisible();
+        await expect(pageA.locator('[data-testid="pending-invites-card"]')).toBeVisible({ timeout: 10000 });
 
         // 4. User B accepts the invitation
         await pageB.goto('/settings');
@@ -51,8 +51,8 @@ test.describe('Invitations & Subscriptions', () => {
         await pageB.locator('button[title="Accept"]').click();
         
         // Wait for it to disappear from Pending and appear in Subscriptions
-        await expect(pageB.locator('section').filter({ hasText: 'Pending Invitations' }).locator('text=' + sharedListName)).not.toBeVisible();
-        await expect(pageB.locator('section').filter({ hasText: 'Subscriptions' }).locator('text=' + sharedListName)).toBeVisible();
+        await expect(pageB.locator('[data-testid="pending-invites-card"]', { hasText: sharedListName })).not.toBeVisible();
+        await expect(pageB.locator('[data-testid="subscriptions-card"]', { hasText: sharedListName })).toBeVisible();
 
         // 5. User A verifies User B is a member
         await pageA.reload();
@@ -60,11 +60,11 @@ test.describe('Invitations & Subscriptions', () => {
 
         // 6. User B unsubscribes
         pageB.on('dialog', dialog => dialog.accept());
-        const unsubscribePromise = pageB.waitForResponse(resp => resp.url().includes('/unsubscribe') && resp.status() === 200);
-        await pageB.locator('button', { hasText: 'Unsubscribe' }).click();
-        await unsubscribePromise;
+        const refreshPromise = pageB.waitForResponse(resp => resp.url().includes('/api/lists') && resp.status() === 200);
+        await pageB.locator('button[title="Unsubscribe"]').first().click();
+        await refreshPromise;
 
-        await expect(pageB.locator('section').filter({ hasText: 'Subscriptions' }).locator('text=' + sharedListName)).not.toBeVisible();
+        await expect(pageB.locator('[data-testid="subscriptions-card"]', { hasText: sharedListName })).not.toBeVisible();
 
         // 7. Cleanup contexts
         await ctxA.close();
