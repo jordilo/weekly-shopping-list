@@ -1,14 +1,31 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import { Item, PushSubscription } from '@/lib/models';
+import { Item, PushSubscription, ListMembership } from '@/lib/models';
+import { getSession } from '@/lib/auth';
 import { configureWebPush } from '@/lib/push';
 import webpush from 'web-push';
 
-export async function GET() {
+export async function GET(request: Request) {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     await dbConnect();
+
+    const { searchParams } = new URL(request.url);
+    const listId = searchParams.get('listId');
+
+    if (!listId) {
+        return NextResponse.json({ error: 'listId is required' }, { status: 400 });
+    }
+
+    // Verify membership
+    const membership = await ListMembership.findOne({ listId, userId: session.userId });
+    if (!membership) {
+        return NextResponse.json({ error: 'Not a member of this list' }, { status: 403 });
+    }
+
     try {
-        const items = await Item.find({}).sort({ createdAt: -1 });
-        // Transform _id to id for frontend compatibility
+        const items = await Item.find({ listId }).sort({ createdAt: -1 });
         const formattedItems = items.map((doc) => ({
             id: doc._id.toString(),
             name: doc.name,
@@ -24,18 +41,35 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     await dbConnect();
     try {
         const body = await request.json();
+        const { listId } = body;
+
+        if (!listId) {
+            return NextResponse.json({ error: 'listId is required' }, { status: 400 });
+        }
+
+        // Verify membership
+        const membership = await ListMembership.findOne({ listId, userId: session.userId });
+        if (!membership) {
+            return NextResponse.json({ error: 'Not a member of this list' }, { status: 403 });
+        }
+
         const item = await Item.create(body);
 
-        // --- Trigger Push Notifications ---
+        // --- Trigger Push Notifications (exclude the current user) ---
         const isConfigured = configureWebPush();
-        if (!isConfigured) {
-            console.warn('Push: VAPID not configured, skipping notification.');
-        } else {
-            const subscriptions = await PushSubscription.find({});
-            console.log(`Push: found ${subscriptions.length} subscription(s) to notify.`);
+        if (isConfigured) {
+            // Find all members of the list except the current user
+            const memberships = await ListMembership.find({ listId, userId: { $ne: session.userId } });
+            const memberUserIds = memberships.map(m => m.userId);
+
+            const subscriptions = await PushSubscription.find({ userId: { $in: memberUserIds } });
+            console.log(`Push: found ${subscriptions.length} subscription(s) to notify (excluding current user).`);
 
             const payload = JSON.stringify({
                 title: 'New Item Added',
@@ -76,41 +110,24 @@ export async function POST(request: Request) {
     }
 }
 
-export async function PUT() {
+export async function DELETE(request: Request) {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     await dbConnect();
-    try {
-        // Determine what update operation is needed.
-        // If 'id' is in body, it's a specific update.
-        // However, for bulk updates (like clear list), we might need a different strategy.
-        // For simplicity, let's assume this route handles single items via query param or body.
 
-        // Wait, Next.js App Router convention for dynamic ID is `[id]/route.ts`.
-        // Beacuse we are doing simple "saveItems" in the client, let's support bulk sync or specific item updates.
-        // But the client `saveItems` sends the WHOLE list. That's inefficient for DB.
-        // I should stick to singular updates if possible, OR implement a bulk endpoint.
-        // For existing frontend logic `saveItems` sends an array.
+    const { searchParams } = new URL(request.url);
+    const listId = searchParams.get('listId');
 
-        // Let's create a Bulk update endpoint or refine the frontend to call API on each action.
-        // Refining frontend to call API on each action is cleaner for DBs.
-        // So this PUT will handle single item toggle/update if I pass an ID in the URL.
-        // But for this file `api/items/route.ts`, it handles collection-level stuff.
-
-        // NOTE: To minimize frontend refactor churn, I will implement a BULK PUT here to match `saveItems` behavior first.
-        // Ideally, we move to event-based (addItem makes POST, toggle makes PUT /id).
-        // Let's implement BULK replace for now to ensure compatibility with `localStorageAdapter` interface.
-        // *Optimisation*: Client logic calls `saveItems` constantly. I should probably refactor the hook to call granular APIs.
-        // Let's implement granular APIs in the Hook first.
-
-        return NextResponse.json({ message: "Use method specific routes or POST" }, { status: 405 })
-
-    } catch {
-        return NextResponse.json({ error: 'Failed to update' }, { status: 500 });
+    if (!listId) {
+        return NextResponse.json({ error: 'listId is required' }, { status: 400 });
     }
-}
 
-export async function DELETE() {
-    // Bulk delete all?
-    await dbConnect();
-    await Item.deleteMany({});
+    const membership = await ListMembership.findOne({ listId, userId: session.userId });
+    if (!membership) {
+        return NextResponse.json({ error: 'Not a member of this list' }, { status: 403 });
+    }
+
+    await Item.deleteMany({ listId });
     return NextResponse.json({ success: true });
 }

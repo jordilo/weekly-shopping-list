@@ -1,0 +1,45 @@
+# User System Implementation
+
+## Phase 1: Planning
+- [/] Research current codebase structure
+- [/] Write implementation plan
+- [ ] Get user approval on plan
+
+## Phase 2: Authentication (Google OAuth)
+- [ ] Install dependencies (`google-auth-library`, `jose` for JWT)
+- [ ] Create [User](file:///d:/code/weekly-shopping-list/src/components/auth-provider.tsx#5-11) model in MongoDB
+- [ ] Create auth utility ([src/lib/auth.ts](file:///d:/code/weekly-shopping-list/src/lib/auth.ts)) for cookie-based sessions
+- [ ] Create `/api/auth/google` route (code exchange → cookie)
+- [ ] Create `/api/auth/me` route (get current user)
+- [ ] Create `/api/auth/logout` route
+- [ ] Create login page (`/login`)
+- [ ] Add auth middleware to all API routes
+- [ ] Add [AuthProvider](file:///d:/code/weekly-shopping-list/src/components/auth-provider.tsx#20-53) context for client-side user state
+
+## Phase 3: Shopping List Ownership
+- [x] Create [ShoppingList](file:///d:/code/weekly-shopping-list/src/lib/hooks/use-shopping-list.tsx#512-519) model (owner, name, isDefault)
+- [x] Migrate [Item](file:///d:/code/weekly-shopping-list/src/lib/hooks/use-shopping-list.tsx#66-75) model to reference a [ShoppingList](file:///d:/code/weekly-shopping-list/src/lib/hooks/use-shopping-list.tsx#512-519)
+- [x] Migrate [History](file:///d:/code/weekly-shopping-list/src/lib/hooks/use-shopping-list.tsx#87-92) model to reference a [User](file:///d:/code/weekly-shopping-list/src/components/auth-provider.tsx#5-11)
+- [x] Create `/api/lists` CRUD routes
+- [x] Create list management page (`/lists`)
+- [x] Add list selector to home page
+- [x] Update [useShoppingList](file:///d:/code/weekly-shopping-list/src/lib/hooks/use-shopping-list.tsx#512-519) hook to be list-aware
+
+## Phase 4: Invitations & Subscriptions
+- [x] Create [Invitation](file:///d:/code/weekly-shopping-list/src/app/lists/%5Bid%5D/settings/page.tsx#17-23) model
+- [x] Create `ListMembership` model (or embed in ShoppingList)
+- [x] Create `/api/lists/[id]/invite` route
+- [x] Create `/api/lists/[id]/members` route
+- [x] Create `/api/invitations` route (view/accept/reject)
+- [x] Add invitation UI in list settings
+- [x] Add subscription management in settings page
+
+## Phase 5: Push Notifications per List
+- [x] Update `PushSubscription` to reference user
+- [x] Send notifications only to list subscribers
+
+## Phase 6: Verification
+- [x] Build succeeds (`npm run build`)
+- [ ] Manual testing of auth flow
+- [ ] Manual testing of list CRUD
+- [ ] Manual testing of invitation flow

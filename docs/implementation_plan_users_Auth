@@ -1,0 +1,283 @@
+# User System with Google OAuth, Shared Shopping Lists & Invitations
+
+The current Weekly Shopping List app has no user system — all data is global. This plan introduces Google OAuth authentication (backend-side, cookie-based), multi-list ownership, invitations/subscriptions, and per-user item history.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Google OAuth Setup**: You'll need to create (or already have) a Google Cloud OAuth 2.0 Client ID and Client Secret. These will be added as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in [.env.local](file:///d:/code/weekly-shopping-list/.env.local). The OAuth redirect URI must be configured in Google Cloud Console to point to your app's callback (e.g., `http://localhost:3000/api/auth/google/callback` for dev, and your production URL).
+
+> [!WARNING]
+> **Data Migration**: Existing items, history, and categories in the database are currently "ownerless". The plan creates a migration script to assign all existing data to your user (`jordi8284@gmail.com`) as the initial owner. This should be run once after deployment.
+
+> [!CAUTION]
+> **Breaking Change**: After this change, unauthenticated users cannot access any data. The app will redirect to a login page for all protected routes and API calls.
+
+---
+
+## Proposed Changes
+
+### 1. Authentication Infrastructure
+
+New dependencies: `google-auth-library` (Google token exchange), `jose` (JWT signing/verification for cookies).
+
+#### [NEW] [auth.ts](file:///d:/code/weekly-shopping-list/src/lib/auth.ts)
+- `createSession(user)` → Signs a JWT with user ID, sets it as an HttpOnly, Secure, SameSite cookie
+- `getSession(request)` → Reads cookie, verifies JWT, returns user info
+- `clearSession()` → Clears the auth cookie
+- JWT payload: `{ userId, email, name, picture }`
+- Cookie name: `session` with 7-day expiry, auto-refreshed on each request
+
+#### [NEW] [route.ts](file:///d:/code/weekly-shopping-list/src/app/api/auth/google/route.ts)
+- [GET](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#7-25) → Redirects browser to Google OAuth consent URL
+- Generates state parameter for CSRF protection, stores in cookie
+
+#### [NEW] [route.ts](file:///d:/code/weekly-shopping-list/src/app/api/auth/google/callback/route.ts)
+- [GET](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#7-25) → Handles Google OAuth callback
+- Exchanges authorization code for tokens using `google-auth-library`
+- Extracts user profile from ID token (email, name, picture)
+- Creates/updates `User` document in MongoDB
+- Calls `createSession(user)` → sets cookie
+- Redirects to `/`
+
+#### [NEW] [route.ts](file:///d:/code/weekly-shopping-list/src/app/api/auth/me/route.ts)
+- [GET](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#7-25) → Returns current user info from session cookie (or 401)
+
+#### [NEW] [route.ts](file:///d:/code/weekly-shopping-list/src/app/api/auth/logout/route.ts)
+- [POST](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#26-78) → Clears session cookie, returns 200
+
+#### [NEW] [middleware.ts](file:///d:/code/weekly-shopping-list/src/middleware.ts)
+- Next.js middleware that protects all routes except `/login`, `/api/auth/*`, and static assets
+- Reads session cookie → if invalid/missing, redirects to `/login`
+- This avoids having to add auth checks to every individual API route
+
+#### [NEW] [page.tsx](file:///d:/code/weekly-shopping-list/src/app/login/page.tsx)
+- Login page with a "Sign in with Google" button
+- Clean design matching existing app aesthetics
+- Button triggers redirect to `/api/auth/google`
+
+#### [NEW] [auth-provider.tsx](file:///d:/code/weekly-shopping-list/src/components/auth-provider.tsx)
+- React context that calls `/api/auth/me` on mount
+- Provides `{ user, isLoading, logout }` to the component tree
+- Used in layout to show user avatar / logout in header/navbar
+
+#### [MODIFY] [layout.tsx](file:///d:/code/weekly-shopping-list/src/app/layout.tsx)
+- Wrap app in `<AuthProvider>`
+
+#### [MODIFY] [bottom-navbar.tsx](file:///d:/code/weekly-shopping-list/src/components/bottom-navbar.tsx)
+- Add user avatar/profile indicator
+
+---
+
+### 2. Database Schema Changes
+
+#### [MODIFY] [models.ts](file:///d:/code/weekly-shopping-list/src/lib/models.ts)
+
+**New models:**
+
+**User**
+- `email`: String (required, unique) — Google email
+- [name](file:///d:/code/weekly-shopping-list/src/lib/hooks/use-shopping-list.tsx#108-116): String — display name from Google
+- `picture`: String — avatar URL from Google
+- `defaultListId`: ObjectId (ref: ShoppingList) — user's default list
+- `createdAt`: Number (timestamp)
+
+**ShoppingList**
+- [name](file:///d:/code/weekly-shopping-list/src/lib/hooks/use-shopping-list.tsx#108-116): String (required) — list name (e.g., "Weekly Groceries")
+- `ownerId`: ObjectId (ref: User, required) — creator/owner
+- `createdAt`: Number (timestamp)
+
+**ListMembership**
+- `listId`: ObjectId (ref: ShoppingList, required)
+- `userId`: ObjectId (ref: User, required)
+- `role`: String (enum: `owner`, `member`) — owner has full control, member can add/complete items
+- `joinedAt`: Number (timestamp)
+- Compound unique index on [(listId, userId)](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#79-110)
+
+**Invitation**
+- `listId`: ObjectId (ref: ShoppingList, required)
+- `inviterUserId`: ObjectId (ref: User, required)
+- `inviteeEmail`: String (required) — email of the person being invited
+- `status`: String (enum: `pending`, `accepted`, `rejected`)
+- `createdAt`: Number (timestamp)
+- Compound unique index on [(listId, inviteeEmail, status: 'pending')](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#79-110)
+
+**Modified models:**
+
+**Item** — add `listId: ObjectId (ref: ShoppingList, required)`
+
+**History** — add `userId: ObjectId (ref: User, required)` (item history is personal)
+
+**PushSubscription** — add `userId: ObjectId (ref: User, required)` (notifications are per-user)
+
+---
+
+### 3. Shopping List Management
+
+#### [NEW] [route.ts](file:///d:/code/weekly-shopping-list/src/app/api/lists/route.ts)
+- [GET](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#7-25) → Returns all lists where user is owner or member (via ListMembership)
+- [POST](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#26-78) → Creates a new list + creates an `owner` ListMembership entry
+
+#### [NEW] [route.ts](file:///d:/code/weekly-shopping-list/src/app/api/lists/[id]/route.ts)
+- [GET](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#7-25) → Get list details (if user is member)
+- [PUT](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#79-110) → Update list name (owner only)
+- [DELETE](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#111-117) → Delete list (owner only) + cascade delete items, memberships, invitations
+
+#### [NEW] [route.ts](file:///d:/code/weekly-shopping-list/src/app/api/lists/[id]/default/route.ts)
+- [PUT](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#79-110) → Sets this list as the user's default (updates `User.defaultListId`)
+
+#### [NEW] [page.tsx](file:///d:/code/weekly-shopping-list/src/app/lists/page.tsx)
+- List management page: create, rename, delete lists
+- Toggle "default" list with a star icon
+- Shows owned lists and subscribed lists
+
+#### [MODIFY] [page.tsx](file:///d:/code/weekly-shopping-list/src/app/page.tsx)
+- Add a dropdown/selector at the top to pick which list to view
+- Default list is pre-selected
+- Switching lists changes the context for all items displayed
+
+#### [MODIFY] [use-shopping-list.tsx](file:///d:/code/weekly-shopping-list/src/lib/hooks/use-shopping-list.tsx)
+- Accept `listId` parameter (from URL or state)
+- Pass `listId` in all API calls (e.g., `GET /api/items?listId=...`)
+- Fetch user's lists and expose a `setActiveList` function
+
+#### [MODIFY] [route.ts](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts)
+- [GET](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#7-25) → Filter items by `listId` query param
+- [POST](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#26-78) → Require `listId` in body, verify user has membership
+- [DELETE](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#111-117) → Scope to `listId`
+
+#### [MODIFY] [route.ts](file:///d:/code/weekly-shopping-list/src/app/api/items/[id]/route.ts)
+- Verify the item belongs to a list the user has access to
+
+#### [MODIFY] History/Meta API routes
+- Scope history to user
+- Scope meta to list
+
+---
+
+### 4. Invitation & Subscription System
+
+#### [NEW] [route.ts](file:///d:/code/weekly-shopping-list/src/app/api/lists/[id]/invite/route.ts)
+- [POST](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#26-78) → Owner sends invitation by email
+  - Creates `Invitation` doc with status `pending`
+  - If invitee already has an account, creates a pending invitation visible to them
+  - Sends push notification to invitee if subscribed
+
+#### [NEW] [route.ts](file:///d:/code/weekly-shopping-list/src/app/api/lists/[id]/members/route.ts)
+- [GET](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#7-25) → Returns all members of a list (owner only, or if user is member)
+- [DELETE](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#111-117) → Owner removes a member from the list
+
+#### [NEW] [route.ts](file:///d:/code/weekly-shopping-list/src/app/api/invitations/route.ts)
+- [GET](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#7-25) → Returns pending invitations for the current user (matched by email)
+
+#### [NEW] [route.ts](file:///d:/code/weekly-shopping-list/src/app/api/invitations/[id]/route.ts)
+- [PUT](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#79-110) → Accept or reject invitation
+  - On accept: creates `ListMembership` with role `member`, updates invitation status
+  - On reject: updates invitation status
+
+#### [NEW] [route.ts](file:///d:/code/weekly-shopping-list/src/app/api/lists/[id]/unsubscribe/route.ts)
+- [POST](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts#26-78) → User leaves a list they're a member of (cannot unsubscribe from own list)
+
+#### [MODIFY] [page.tsx](file:///d:/code/weekly-shopping-list/src/app/settings/page.tsx)
+- Add "Subscriptions" section:
+  - Shows all lists the user is subscribed to (not owned)
+  - "Unsubscribe" button per list
+- Add "Pending Invitations" section:
+  - Shows incoming invitations with Accept/Reject buttons
+
+#### [NEW] [page.tsx](file:///d:/code/weekly-shopping-list/src/app/lists/[id]/settings/page.tsx)
+- List-specific settings page (accessible by owner):
+  - Invite by email
+  - View members
+  - Remove members
+
+---
+
+### 5. Push Notifications Scoping
+
+#### [MODIFY] [route.ts](file:///d:/code/weekly-shopping-list/src/app/api/push/subscribe/route.ts)
+- Associate push subscription with `userId`
+
+#### [MODIFY] [route.ts](file:///d:/code/weekly-shopping-list/src/app/api/items/route.ts)
+- When sending push notifications on item add/modify, notify all members of the relevant list **except the user making the change**
+- The current user's ID (from session cookie) is used to exclude their own subscriptions
+
+---
+
+### 6. Data Migration Script
+
+#### [NEW] [migrate.ts](file:///d:/code/weekly-shopping-list/scripts/migrate.ts)
+- Finds or creates user by email (`jordi8284@gmail.com`)
+- Creates a default "Weekly Shopping" list owned by that user
+- Updates all existing Items to reference the new list
+- Updates all existing History records to reference the user
+- Sets the user's `defaultListId`
+
+---
+
+### 7. Environment Variables
+
+#### [MODIFY] [.env.example](file:///d:/code/weekly-shopping-list/.env.example)
+Add:
+```
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+JWT_SECRET=your-random-secret-32-chars-min
+NEXT_PUBLIC_APP_URL=http://localhost:3000  # For production: https://weekly-shopping-list-murex.vercel.app
+```
+
+---
+
+### 8. Navigation Updates
+
+#### [MODIFY] [bottom-navbar.tsx](file:///d:/code/weekly-shopping-list/src/components/bottom-navbar.tsx)
+- Add "Lists" nav item linking to `/lists`
+- Add user profile/avatar indicator
+
+---
+
+## Verification Plan
+
+### Build Verification
+```bash
+npm run build
+```
+Must succeed with no errors.
+
+### Automated Tests (Playwright)
+
+New test files will be added alongside existing Playwright tests:
+
+#### [NEW] [auth.spec.ts](file:///d:/code/weekly-shopping-list/tests/auth.spec.ts)
+- Unauthenticated access redirects to `/login`
+- Login page renders correctly with Google sign-in button
+- Logout clears session and redirects to `/login`
+- Protected API routes return 401 without session
+
+#### [NEW] [lists.spec.ts](file:///d:/code/weekly-shopping-list/tests/lists.spec.ts)
+- Create a new shopping list
+- Rename a list
+- Delete a list
+- Set a list as default (star icon)
+- Default list appears first on home page
+- List selector on home page switches between lists
+- Items are scoped to the selected list
+
+#### [NEW] [invitations.spec.ts](file:///d:/code/weekly-shopping-list/tests/invitations.spec.ts)
+- Send an invitation by email
+- View pending invitations in settings
+- Accept an invitation → list appears in subscriber's lists
+- Reject an invitation
+- Unsubscribe from a shared list
+- Owner removes a member from list
+
+> [!NOTE]
+> Since Google OAuth requires real browser interaction, the automated tests will use a **test auth bypass**: a `TEST_USER_EMAIL` env var that, when set, allows the test setup to directly create a session cookie without going through Google OAuth. This is a common pattern for E2E testing of OAuth apps.
+
+### Manual Testing
+
+The following scenarios should be tested manually to verify the real Google OAuth flow:
+
+1. **Login Flow**: Open app → redirect to `/login` → click "Sign in with Google" → Google consent → back to `/` with session
+2. **Push Notifications**: Add item to a shared list → verify other members get notified (not the modifier)
+3. **Cross-device**: Login on two devices → verify list sync

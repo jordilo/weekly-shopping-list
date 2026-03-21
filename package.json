@@ -12,8 +12,11 @@
   "dependencies": {
     "@heroui/react": "^2.8.9",
     "@types/web-push": "^3.6.4",
+    "@vercel/speed-insights": "^2.0.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.34.3",
+    "google-auth-library": "^10.6.1",
+    "jose": "^6.2.1",
     "lucide-react": "^0.564.0",
     "mongoose": "^8.23.0",
     "next": "16.1.6",

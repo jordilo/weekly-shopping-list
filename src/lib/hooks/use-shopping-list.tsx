@@ -23,10 +23,18 @@ export interface Category {
     order: number;
 }
 
+export interface ShoppingListInfo {
+    id: string;
+    name: string;
+    role: 'owner' | 'member';
+    ownerId: string;
+    createdAt: number;
+}
+
 // --- Storage Interface (Adapter Pattern) ---
 interface StorageAdapter {
-    getItems: () => Promise<ShoppingItem[]>;
-    addItem: (item: Omit<ShoppingItem, 'id'>) => Promise<ShoppingItem>;
+    getItems: (listId: string) => Promise<ShoppingItem[]>;
+    addItem: (item: Omit<ShoppingItem, 'id'> & { listId: string }) => Promise<ShoppingItem>;
     updateItem: (id: string, updates: Partial<ShoppingItem>) => Promise<ShoppingItem>;
     deleteItem: (id: string) => Promise<void>;
 
@@ -39,16 +47,19 @@ interface StorageAdapter {
     deleteHistoryItem: (name: string) => Promise<void>;
     renameHistoryItem: (oldName: string, newName: string, category: string) => Promise<void>;
 
-    getWeekStartDate: () => Promise<number>;
-    setWeekStartDate: (date: number) => Promise<void>;
+    getWeekStartDate: (listId: string) => Promise<number>;
+    setWeekStartDate: (listId: string, date: number) => Promise<void>;
 
-    clearItems: () => Promise<void>;
+    clearItems: (listId: string) => Promise<void>;
+
+    getLists: () => Promise<ShoppingListInfo[]>;
+    getDefaultListId: () => Promise<string | null>;
 }
 
 // --- API Implementation ---
 const apiAdapter: StorageAdapter = {
-    getItems: async () => {
-        const res = await fetch('/api/items');
+    getItems: async (listId: string) => {
+        const res = await fetch(`/api/items?listId=${listId}`);
         if (!res.ok) return [];
         return res.json();
     },
@@ -113,22 +124,33 @@ const apiAdapter: StorageAdapter = {
         });
         if (!res.ok) throw new Error('Failed to rename history item');
     },
-    getWeekStartDate: async () => {
-        const res = await fetch('/api/meta?key=weekStartDate');
+    getWeekStartDate: async (listId: string) => {
+        const res = await fetch(`/api/meta?key=weekStartDate&listId=${listId}`);
         if (!res.ok) return Date.now();
         const data = await res.json();
         return data.value ? parseInt(data.value) : Date.now();
     },
-    setWeekStartDate: async (date) => {
+    setWeekStartDate: async (listId: string, date: number) => {
         await fetch('/api/meta', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key: 'weekStartDate', value: date }),
+            body: JSON.stringify({ key: 'weekStartDate', value: date, listId }),
         });
     },
-    clearItems: async () => {
-        await fetch('/api/items', { method: 'DELETE' });
-    }
+    clearItems: async (listId: string) => {
+        await fetch(`/api/items?listId=${listId}`, { method: 'DELETE' });
+    },
+    getLists: async () => {
+        const res = await fetch('/api/lists');
+        if (!res.ok) return [];
+        return res.json();
+    },
+    getDefaultListId: async () => {
+        const res = await fetch('/api/auth/me');
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.defaultListId || null;
+    },
 }
 
 interface ShoppingListContextType {
@@ -136,6 +158,10 @@ interface ShoppingListContextType {
     historySuggestions: HistoryItem[];
     categories: Category[];
     weekStartDate: number;
+    lists: ShoppingListInfo[];
+    activeListId: string | null;
+    activeList: ShoppingListInfo | null;
+    setActiveListId: (id: string) => void;
     addItem: (name: string) => Promise<void>;
     toggleItem: (id: string) => Promise<void>;
     updateCategory: (id: string, newCategory: string) => Promise<void>;
@@ -144,6 +170,7 @@ interface ShoppingListContextType {
     clearCompleted: () => Promise<void>;
     resetList: () => Promise<void>;
     refresh: () => Promise<void>;
+    refreshLists: () => Promise<ShoppingListInfo[]>;
     addCategory: (name: string) => Promise<void>;
     deleteCategory: (id: string) => Promise<void>;
     deleteHistoryItem: (name: string) => Promise<void>;
@@ -160,17 +187,59 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
     const [categories, setCategories] = useState<Category[]>([]);
     const [weekStartDate, setWeekStartDate] = useState<number>(Date.now());
     const [isLoaded, setIsLoaded] = useState(false);
+    const [lists, setLists] = useState<ShoppingListInfo[]>([]);
+    const [activeListId, setActiveListIdState] = useState<string | null>(null);
 
     const adapter = apiAdapter;
 
+    const setActiveListId = useCallback((id: string) => {
+        setActiveListIdState(id);
+    }, []);
+
+    const activeList = lists.find(l => l.id === activeListId) || null;
+
+    const refreshLists = useCallback(async () => {
+        try {
+            const loadedLists = await adapter.getLists();
+            setLists(loadedLists);
+            return loadedLists;
+        } catch (error) {
+            console.error('Failed to load lists', error);
+            return [];
+        }
+    }, [adapter]);
+
+    // Load lists and set active list on mount
+    useEffect(() => {
+        async function init() {
+            try {
+                const [loadedLists, defaultListId] = await Promise.all([
+                    adapter.getLists(),
+                    adapter.getDefaultListId(),
+                ]);
+                setLists(loadedLists);
+
+                if (defaultListId && loadedLists.some(l => l.id === defaultListId)) {
+                    setActiveListIdState(defaultListId);
+                } else if (loadedLists.length > 0) {
+                    setActiveListIdState(loadedLists[0].id);
+                }
+            } catch (error) {
+                console.error('Failed to initialize', error);
+            }
+        }
+        init();
+    }, [adapter]);
+
     const refresh = useCallback(async () => {
+        if (!activeListId) return;
         setIsLoaded(false);
         try {
             const [loadedItems, loadedHistory, loadedCategories, loadedDate] = await Promise.all([
-                adapter.getItems(),
+                adapter.getItems(activeListId),
                 adapter.getHistory(),
                 adapter.getCategories(),
-                adapter.getWeekStartDate()
+                adapter.getWeekStartDate(activeListId)
             ]);
             setItems(loadedItems);
             setHistorySuggestions(loadedHistory.map(h => ({ ...h, category: h.category ?? 'Uncategorized' })));
@@ -181,11 +250,51 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
         } finally {
             setIsLoaded(true);
         }
-    }, [adapter]);
+    }, [adapter, activeListId]);
 
+    // Refresh items when active list changes
     useEffect(() => {
-        refresh();
-    }, [refresh]);
+        if (activeListId) {
+            refresh();
+        }
+    }, [activeListId, refresh]);
+
+    // Auto-refresh: poll every 30 seconds when the tab is visible,
+    // and trigger an immediate refresh when the tab regains focus.
+    useEffect(() => {
+        if (!activeListId) return;
+        const POLL_INTERVAL_MS = 30_000;
+
+        const pollItems = async () => {
+            if (document.visibilityState !== 'visible') return;
+            try {
+                const freshItems = await adapter.getItems(activeListId);
+                setItems(prev => {
+                    const prevJson = JSON.stringify(prev.map(i => i.id + i.completed + i.name + i.quantity + i.category));
+                    const nextJson = JSON.stringify(freshItems.map((i: ShoppingItem) => i.id + i.completed + i.name + i.quantity + i.category));
+                    return prevJson === nextJson ? prev : freshItems;
+                });
+            } catch {
+                // Silently ignore polling errors
+            }
+        };
+
+        const interval = setInterval(pollItems, POLL_INTERVAL_MS);
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                pollItems();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [adapter, activeListId]);
+
 
     // Auto-refresh: poll every 30 seconds when the tab is visible,
     // and trigger an immediate refresh when the tab regains focus.
@@ -224,6 +333,8 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
     }, [adapter]);
 
     const addItem = useCallback(async (name: string) => {
+        if (!activeListId) return;
+
         const normalizedName = name.trim();
         const existing = items.find(i => i.name.toLowerCase() === normalizedName.toLowerCase());
 
@@ -244,6 +355,7 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
                 completed: false,
                 category,
                 createdAt: Date.now(),
+                listId: activeListId,
             });
 
             setItems((prev) => [newItem, ...prev]);
@@ -256,7 +368,7 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
         } catch (e) {
             console.error("Failed to add", e);
         }
-    }, [items, historySuggestions, adapter]);
+    }, [items, historySuggestions, adapter, activeListId]);
 
     const updateCategory = useCallback(async (id: string, newCategory: string) => {
         const item = items.find(i => i.id === id);
@@ -331,17 +443,18 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
     }, [items, adapter]);
 
     const resetList = useCallback(async () => {
+        if (!activeListId) return;
         if (confirm("Are you sure you want to start a new week?")) {
             setItems([]);
             const newDate = Date.now();
             setWeekStartDate(newDate);
 
             await Promise.all([
-                adapter.clearItems(),
-                adapter.setWeekStartDate(newDate)
+                adapter.clearItems(activeListId),
+                adapter.setWeekStartDate(activeListId, newDate)
             ]);
         }
-    }, [adapter]);
+    }, [adapter, activeListId]);
 
     const addCategory = useCallback(async (name: string) => {
         try {
@@ -405,6 +518,10 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
         historySuggestions,
         categories,
         weekStartDate,
+        lists,
+        activeListId,
+        activeList,
+        setActiveListId,
         addItem,
         toggleItem,
         updateCategory,
@@ -413,6 +530,7 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
         clearCompleted,
         resetList,
         refresh,
+        refreshLists,
         addCategory,
         deleteCategory,
         deleteHistoryItem,

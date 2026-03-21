@@ -1,11 +1,20 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Weekly Shopping List', () => {
-    test.beforeEach(async ({ page }) => {
+    test.beforeEach(async ({ page, request }) => {
+        await page.request.post('/api/auth/test-login', {
+            data: { email: 'test@example.com', name: 'Test Setup User' }
+        });
+        await request.post('/api/auth/test-login', {
+            data: { email: 'test@example.com', name: 'Test Setup User' }
+        });
         await page.goto('/');
+        // Wait for hydration/loading
+        await expect(page.getByText('Loading...')).not.toBeVisible();
         // Clear local storage to start fresh
         await page.evaluate(() => localStorage.clear());
         await page.reload();
+        await expect(page.getByText('Loading...')).not.toBeVisible();
     });
 
     test('should allow adding items', async ({ page }) => {
@@ -88,7 +97,7 @@ test.describe('Weekly Shopping List', () => {
         await page.getByRole('button', { name: 'Save Changes' }).click();
 
         // Verify updates in list
-        await expect(page.getByText('Qty: 2 liters')).toBeVisible();
+        await expect(page.getByText('Qty: 2 liters').first()).toBeVisible();
         await expect(page.getByRole('heading', { name: categoryName, exact: true })).toBeVisible(); 
     });
 
@@ -134,20 +143,27 @@ test.describe('Weekly Shopping List', () => {
 
     test('should start a new week', async ({ page }) => {
         const itemName = `OldItem-${Date.now()}`;
-        const newWeekButton = page.getByRole('button', { name: 'New Week' });
-
+        
         const input = page.getByPlaceholder('Add item (e.g., Milk)');
         const addButton = page.getByRole('button', { name: 'Add' });
         await input.fill(itemName);
         await addButton.click();
         await expect(page.getByText(itemName)).toBeVisible();
 
-        page.on('dialog', dialog => dialog.accept());
+        // Open menu
+        await page.getByRole('button', { name: 'Open menu' }).click();
+        const newWeekButton = page.getByRole('button', { name: 'New Week' });
+        await expect(newWeekButton).toBeVisible();
 
-        const metaResponsePromise = page.waitForResponse(resp => resp.url().includes('/api/meta') && resp.status() === 200);
+        page.on('dialog', dialog => dialog.accept());
+        
+        const resetPromise = page.waitForResponse(resp => resp.url().includes('/api/items') && resp.request().method() === 'DELETE' && resp.status() === 200);
 
         await newWeekButton.click();
-        await metaResponsePromise;
+        await resetPromise;
+        
+        // Wait for UI to settle
+        await page.waitForTimeout(1000);
 
         await expect(page.getByText(itemName)).not.toBeVisible();
         await expect(page.getByText(/Week of/)).toBeVisible();
@@ -204,13 +220,18 @@ test.describe('Weekly Shopping List', () => {
     test('should refresh the list', async ({ page, request }) => {
         const uniqueName = `SecretItem-${Date.now()}`;
 
+        const listsRes = await request.get('/api/lists');
+        const lists = await listsRes.json();
+        const listId = lists[0]?.id;
+
         // 1. Add item via API directly (simulating another user or device)
         const response = await request.post('/api/items', {
             data: {
                 name: uniqueName,
                 completed: false,
                 category: 'Other',
-                createdAt: Date.now()
+                createdAt: Date.now(),
+                listId
             }
         });
         expect(response.ok()).toBeTruthy();

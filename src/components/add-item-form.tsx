@@ -3,23 +3,30 @@ import { Plus } from 'lucide-react';
 import { Input, Button } from '@heroui/react';
 
 interface AddItemFormProps {
-    onAdd: (name: string) => void;
+    onAdd: (name: string) => Promise<void> | void;
     suggestions?: { name: string; category: string }[];
 }
 
 export function AddItemForm({ onAdd, suggestions = [] }: AddItemFormProps) {
     const [name, setName] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name.trim()) return;
-        onAdd(name.trim());
-        setName('');
+        if (!name.trim() || isSubmitting) return;
+        
+        setIsSubmitting(true);
+        try {
+            await onAdd(name.trim());
+            setName('');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="flex gap-2 w-full max-w-md items-start">
-            <div className="flex-1">
+        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 w-full max-w-lg items-start">
+            <div className="flex-1 w-full">
                 <Input
                     type="text"
                     list="shopping-history"
@@ -28,8 +35,9 @@ export function AddItemForm({ onAdd, suggestions = [] }: AddItemFormProps) {
                     placeholder="Add item (e.g., Milk)"
                     variant="bordered"
                     classNames={{
-                        inputWrapper: "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800",
+                        inputWrapper: "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700",
                     }}
+                    isDisabled={isSubmitting}
                 />
                 <datalist id="shopping-history">
                     {suggestions.map((item) => (
@@ -39,12 +47,13 @@ export function AddItemForm({ onAdd, suggestions = [] }: AddItemFormProps) {
             </div>
             <Button
                 type="submit"
-                disabled={!name.trim()}
+                disabled={!name.trim() || isSubmitting}
+                isLoading={isSubmitting}
                 color="primary"
-                className="font-bold"
-                startContent={<Plus size={20} />}
+                className="font-bold w-full sm:w-auto"
+                startContent={!isSubmitting ? <Plus size={20} /> : undefined}
             >
-                <span className="hidden sm:inline">Add</span>
+                <span>Add</span>
             </Button>
         </form>
     );

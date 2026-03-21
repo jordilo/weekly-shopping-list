@@ -1,0 +1,34 @@
+# User System Implementation Walkthrough
+
+The application has been successfully transformed from a global, unauthenticated list to a multi-tenant, user-centric application with Google OAuth, invitations, and shared lists.
+
+## 🔐 Authentication & Security
+- **Google OAuth**: Integrated using `google-auth-library`.
+- **Sessions**: Custom HttpOnly, secure cookies via signed `jose` JWTs.
+- **Middleware**: [src/middleware.ts](file:///d:/code/weekly-shopping-list/src/middleware.ts) now protects all application screens and API routes, automatically redirecting logged-out users to `/login`.
+- **Login Page**: Added a beautiful new `/login` page that invokes the OAuth flow.
+
+## 🗄️ Database Changes
+- **New Models**: [User](file:///d:/code/weekly-shopping-list/src/components/auth-provider.tsx#5-11), [ShoppingList](file:///d:/code/weekly-shopping-list/src/lib/hooks/use-shopping-list.tsx#512-519), `ListMembership`, [Invitation](file:///d:/code/weekly-shopping-list/src/app/lists/%5Bid%5D/settings/page.tsx#17-23).
+- **Modifications**: Added `listId` to [Item](file:///d:/code/weekly-shopping-list/src/lib/hooks/use-shopping-list.tsx#66-75) and `Meta`; added `userId` to [History](file:///d:/code/weekly-shopping-list/src/lib/hooks/use-shopping-list.tsx#87-92) and `PushSubscription` to make all data correctly scoped.
+
+## 📋 Shopping List Management
+- **List Selector**: A dropdown in the main header lets users quickly switch between lists they own or are subscribed to.
+- **Lists Overview**: A new `/lists` page lets users create new lists, rename them, delete them, and set one as their "default" list.
+
+## 🤝 Invitations & Subscriptions
+- **List Settings**: List owners can invite people by email, view members, and remove them on `/lists/[id]/settings`.
+- **Global Settings**: The `/settings` page handles pending invitations (accept/reject) and lets users unsubscribe from lists shared with them.
+
+## 🔔 Notifications
+- Push notifications on new items or re-added items are now sent to all members of the active list **except** the user who triggered the change avoiding redundant personal pings.
+
+## 🔄 Data Migration
+- A one-time migration script [scripts/migrate.ts](file:///d:/code/weekly-shopping-list/scripts/migrate.ts) has been provided which sets up the initial default list for your main account and scopes all pre-existing global data to your new list / user.
+
+## What's Next
+Everything is hooked up and the app builds successfully. 
+To get started:
+1. Ensure [.env.local](file:///d:/code/weekly-shopping-list/.env.local) contains your `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `JWT_SECRET`.
+2. Run the migration script with `npx tsx scripts/migrate.ts`.
+3. Try the `/login` flow!
