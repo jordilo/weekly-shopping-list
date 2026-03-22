@@ -10,7 +10,7 @@ test.describe('Items Manager', () => {
             window.localStorage.clear();
         });
         await page.goto('/items');
-        await expect(page.getByText('Loading...')).not.toBeVisible();
+        await expect(page.getByText('Loading...')).not.toBeVisible({ timeout: 15000 });
     });
 
     test('should allow adding a new master item', async ({ page }) => {

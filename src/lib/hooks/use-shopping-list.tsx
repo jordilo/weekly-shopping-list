@@ -208,8 +208,6 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
             return [];
         }
     }, [adapter]);
-
-    // Load lists and set active list on mount
     useEffect(() => {
         async function init() {
             try {
@@ -219,13 +217,21 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
                 ]);
                 setLists(loadedLists);
 
+                let idToSet = null;
                 if (defaultListId && loadedLists.some(l => l.id === defaultListId)) {
-                    setActiveListIdState(defaultListId);
+                    idToSet = defaultListId;
                 } else if (loadedLists.length > 0) {
-                    setActiveListIdState(loadedLists[0].id);
+                    idToSet = loadedLists[0].id;
+                }
+
+                if (idToSet) {
+                    setActiveListIdState(idToSet);
+                } else {
+                    setIsLoaded(true);
                 }
             } catch (error) {
                 console.error('Failed to initialize', error);
+                setIsLoaded(true);
             }
         }
         init();
@@ -294,6 +300,7 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [adapter, activeListId]);
+
 
 
     const addItem = useCallback(async (name: string) => {

@@ -86,7 +86,10 @@ export default function ListSettingsPage({ params }: { params: Promise<{ id: str
         await loadData();
     };
 
-    const pendingInvitations = invitations.filter(i => i.status === 'pending');
+    const pendingInvitations = invitations.filter(i => 
+        i.status === 'pending' && 
+        !members.some(m => m.email.toLowerCase() === i.inviteeEmail.toLowerCase())
+    );
 
     return (
         <PageContainer className="space-y-8 pb-32">

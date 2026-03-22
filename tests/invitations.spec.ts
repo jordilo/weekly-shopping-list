@@ -48,15 +48,18 @@ test.describe('Invitations & Subscriptions', () => {
         await expect(pageB.locator('text=' + sharedListName)).toBeVisible();
         
         // Click Accept
+        const acceptPromise = pageB.waitForResponse(resp => resp.url().includes('/api/invitations/') && resp.request().method() === 'PUT' && resp.status() === 200);
         await pageB.locator('button[title="Accept"]').click();
+        await acceptPromise;
         
         // Wait for it to disappear from Pending and appear in Subscriptions
         await expect(pageB.locator('[data-testid="pending-invites-card"]', { hasText: sharedListName })).not.toBeVisible();
         await expect(pageB.locator('[data-testid="subscriptions-card"]', { hasText: sharedListName })).toBeVisible();
 
         // 5. User A verifies User B is a member
+        await pageA.waitForTimeout(1000);
         await pageA.reload();
-        await expect(pageA.locator('text=' + userBEmail)).toBeVisible();
+        await expect(pageA.locator('[data-testid="invite-card"]')).toContainText(userBEmail);
 
         // 6. User B unsubscribes
         pageB.on('dialog', dialog => dialog.accept());
