@@ -52,24 +52,53 @@ export default function SettingsPage() {
     }, []);
 
     useEffect(() => {
-        // eslint-disable-next-line
         setMounted(true);
         loadData();
     }, [loadData]);
 
     const handleRespondInvitation = async (invId: string, action: 'accept' | 'reject') => {
-        await fetch(`/api/invitations/${invId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action }),
-        });
-        await loadData();
+        // Optimistic update
+        const acceptedInv = invitations.find(i => i.id === invId);
+        setInvitations(prev => prev.filter(i => i.id !== invId));
+        
+        if (action === 'accept' && acceptedInv) {
+            setSubscriptions(prev => [...prev, {
+                id: acceptedInv.listId,
+                name: acceptedInv.listName,
+                role: 'member'
+            }]);
+        }
+
+        try {
+            const res = await fetch(`/api/invitations/${invId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action }),
+            });
+            if (!res.ok) throw new Error('Failed to respond to invitation');
+            await loadData();
+        } catch (error) {
+            console.error(error);
+            // Revert on error
+            loadData();
+        }
     };
 
     const handleUnsubscribe = async (listId: string) => {
         if (!confirm('Unsubscribe from this list? You won\'t see it anymore.')) return;
-        await fetch(`/api/lists/${listId}/unsubscribe`, { method: 'POST' });
-        await loadData();
+        
+        // Optimistic update
+        setSubscriptions(prev => prev.filter(s => s.id !== listId));
+        
+        try {
+            const res = await fetch(`/api/lists/${listId}/unsubscribe`, { method: 'POST' });
+            if (!res.ok) throw new Error('Failed to unsubscribe');
+            await loadData();
+        } catch (error) {
+            console.error(error);
+            // Revert on error
+            loadData();
+        }
     };
 
     if (!mounted) return null;

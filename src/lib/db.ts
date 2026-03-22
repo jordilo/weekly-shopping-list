@@ -44,7 +44,7 @@ async function dbConnect() {
     if (!cached!.promise) {
         const opts = {
             bufferCommands: false,
-            maxPoolSize: 1, // Limit connections in serverless environment to prevent exhaustion
+            maxPoolSize: 10, // Increased to handle concurrent requests in tests/dev
             serverSelectionTimeoutMS: 5000,
             socketTimeoutMS: 45000,
         };
