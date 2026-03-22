@@ -26,6 +26,8 @@ This document provides context and guidelines for AI assistants working on this 
 - **ESLint**: Always respect the rules defined in `eslint.config.mjs`. Use `npm run lint` to verify.
 - **Prettier**: Follow standard Prettier formatting. If no `.prettierrc` is present, use default settings (2-space indentation, semicolons, single quotes if possible).
 - **TypeScript**: Use strict types. Avoid `any`. Prefer interfaces for models and props.
+- **Next.js**: Use Next.js features and best practices. For example, use `Image` component for images, `Link` component for links, etc.
+- **SOLID**: Follow SOLID principles. For example, Single Responsibility Principle, Open/Closed Principle, Liskov Substitution Principle, Interface Segregation Principle, Dependency Inversion Principle. Try to avoid files with more than 200 lines of code. if a file is getting too large, split it into smaller files considering the responsibility of each file.
 
 ### 2. Testing Requirements
 Every new feature or significant logic change **must** include tests in the `tests/` directory:

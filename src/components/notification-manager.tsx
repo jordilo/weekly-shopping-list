@@ -1,98 +1,18 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-
-function urlBase64ToUint8Array(base64String: string) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-        .replace(/\-/g, '+')
-        .replace(/_/g, '/');
-
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
-}
+import { usePushNotifications } from '@/lib/use-push-notifications';
 
 export function NotificationManager() {
-    const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>('default');
-    const [isSubscribing, setIsSubscribing] = useState(false);
-    const [isIOS, setIsIOS] = useState(false);
-    const [isStandalone, setIsStandalone] = useState(false);
+    const { 
+        permissionStatus, 
+        isSubscribing, 
+        isIOS, 
+        isStandalone, 
+        subscribe, 
+        setPermissionStatus 
+    } = usePushNotifications();
 
-    useEffect(() => {
-        const userAgent = window.navigator.userAgent.toLowerCase();
-        const ios = /iphone|ipad|ipod/.test(userAgent);
-        const standalone = 'standalone' in window.navigator ? Boolean(window.navigator.standalone) : window.matchMedia('(display-mode: standalone)').matches;
-
-        setIsIOS(ios);
-        setIsStandalone(standalone);
-
-        if ('Notification' in window) {
-            setPermissionStatus(Notification.permission);
-        }
-
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
-                .then(reg => {
-                    console.log('SW Registered:', reg.scope);
-                })
-                .catch(err => console.error('SW Registration Error:', err));
-        }
-    }, []);
-
-    const requestPermissionAndSubscribe = async () => {
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            if (isIOS && !isStandalone) {
-                alert('On iPhone, you must first "Add to Home Screen" to enable notifications.');
-            } else {
-                alert('Push notifications are not supported in this browser.');
-            }
-            return;
-        }
-
-        setIsSubscribing(true);
-        try {
-            const permission = await Notification.requestPermission();
-            setPermissionStatus(permission);
-
-            if (permission !== 'granted') return;
-
-            const registration = await navigator.serviceWorker.ready;
-
-            const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY!)
-            });
-
-            // Send subscription to server
-            const res = await fetch('/api/push/subscribe', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(subscription)
-            });
-
-            if (!res.ok) throw new Error('Failed to save subscription on server');
-
-            // Trigger a test notification
-            registration.showNotification('Notifications Enabled!', {
-                body: 'You will now receive alerts for new items.',
-                icon: '/icons/icon-192x192.png'
-            });
-
-        } catch (error) {
-            console.error('Subscription error:', error);
-        } finally {
-            setIsSubscribing(false);
-        }
-    };
-
-    if (permissionStatus === 'default') {
+    if (permissionStatus === 'default' && !isSubscribing) {
         const showInstructions = isIOS && !isStandalone;
 
         return (
@@ -131,7 +51,7 @@ export function NotificationManager() {
                                 <p className="text-sm text-gray-500 dark:text-gray-400">Get notified when someone adds items to the list.</p>
                             </div>
                             <button
-                                onClick={requestPermissionAndSubscribe}
+                                onClick={subscribe}
                                 disabled={isSubscribing}
                                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold py-3 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
                             >
