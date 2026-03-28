@@ -33,14 +33,23 @@ export async function GET() {
         .sort({ createdAt: -1 })
         .lean() as unknown as LeanList[];
 
+    // Get pending counts for all lists
+    const { Item } = await import('@/lib/models');
+    const counts = await Item.aggregate([
+        { $match: { listId: { $in: listIds }, completed: false } },
+        { $group: { _id: '$listId', count: { $sum: 1 } } }
+    ]);
+
     const formatted = lists.map(list => {
         const membership = memberships.find(m => m.listId.toString() === list._id.toString());
+        const countObj = counts.find(c => c._id.toString() === list._id.toString());
         return {
             id: list._id.toString(),
             name: list.name,
             role: membership?.role || 'member',
             ownerId: list.ownerId.toString(),
             createdAt: list.createdAt,
+            pendingCount: countObj ? countObj.count : 0,
         };
     });
 
@@ -75,5 +84,6 @@ export async function POST(request: Request) {
         role: 'owner',
         ownerId: session.userId,
         createdAt: list.createdAt,
+        pendingCount: 0,
     });
 }

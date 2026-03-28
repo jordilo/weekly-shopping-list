@@ -10,8 +10,9 @@ test.describe('Invitations & Subscriptions', () => {
         const pageA = await ctxA.newPage();
         const pageB = await ctxB.newPage();
 
-        const userAEmail = `userA_${Date.now()}@example.com`;
-        const userBEmail = `userB_${Date.now()}@example.com`;
+        const salt = Math.random().toString(36).substring(7);
+        const userAEmail = `userA_${Date.now()}_${salt}@example.com`;
+        const userBEmail = `userB_${Date.now()}_${salt}@example.com`;
 
         // 1. Authenticate User A and B
         await pageA.request.post('/api/auth/test-login', {
@@ -25,8 +26,21 @@ test.describe('Invitations & Subscriptions', () => {
         await pageA.goto('/lists');
         const sharedListName = `Shared List ${Date.now()}`;
         await pageA.fill('[data-testid="new-list-input"]', sharedListName);
+        
+        // Wait for both the creation POST and the subsequent list refresh GET
+        const createPromise = pageA.waitForResponse(resp => 
+            resp.url().includes('/api/lists') && resp.request().method() === 'POST' && resp.status() === 200
+        );
+        const refreshPromiseA = pageA.waitForResponse(resp => 
+            resp.url().includes('/api/lists') && resp.request().method() === 'GET' && resp.status() === 200
+        );
+        
         await pageA.click('button:has-text("Create")');
-        await expect(pageA.locator('text=' + sharedListName)).toBeVisible();
+        await Promise.all([createPromise, refreshPromiseA]);
+        
+        // Use a more specific locator and wait longer if needed
+        const listLocator = pageA.locator('[data-testid="my-lists-card"]').locator('text=' + sharedListName);
+        await expect(listLocator).toBeVisible({ timeout: 10000 });
 
         // Navigate to settings of the newly created list
         const listRowA = pageA.locator('.flex.items-center.p-4.px-6').filter({ hasText: sharedListName });
@@ -57,7 +71,7 @@ test.describe('Invitations & Subscriptions', () => {
         await expect(pageB.locator('[data-testid="subscriptions-card"]', { hasText: sharedListName })).toBeVisible();
 
         // 5. User A verifies User B is a member
-        await pageA.waitForTimeout(1000);
+        // User A needs to reload to see the membership change if there's no real-time sync
         await pageA.reload();
         await expect(pageA.locator('[data-testid="invite-card"]')).toContainText(userBEmail);
 

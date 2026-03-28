@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { HeroUIProvider } from "@heroui/react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { ShoppingListProvider } from "@/lib/hooks/use-shopping-list";
@@ -10,9 +11,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <HeroUIProvider>
       <NextThemesProvider attribute="class" defaultTheme="system">
         <AuthProvider>
-          <ShoppingListProvider>
-            {children}
-          </ShoppingListProvider>
+          <Suspense fallback={<div className="flex h-screen items-center justify-center text-gray-500">Loading...</div>}>
+            <ShoppingListProvider>
+              {children}
+            </ShoppingListProvider>
+          </Suspense>
         </AuthProvider>
       </NextThemesProvider>
     </HeroUIProvider>

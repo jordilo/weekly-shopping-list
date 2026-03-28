@@ -126,15 +126,28 @@ export function Header() {
                                                     onClick={() => {
                                                         setActiveListId(list.id);
                                                         setShowListPicker(false);
+                                                        if (pathname === '/') {
+                                                            router.replace(`/?listId=${list.id}`, { scroll: false });
+                                                        }
                                                     }}
                                                     className={cn(
-                                                        "w-full text-left px-4 py-2 text-sm transition-colors",
+                                                        "w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between gap-2",
                                                         list.id === activeListId
                                                             ? "bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 font-medium"
                                                             : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                                                     )}
                                                 >
-                                                    {list.name}
+                                                    <span className="truncate">{list.name}</span>
+                                                    {list.pendingCount > 0 && (
+                                                        <span className={cn(
+                                                            "flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded-full min-w-[20px] text-center font-bold",
+                                                            list.id === activeListId
+                                                                ? "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
+                                                                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                                                        )}>
+                                                            {list.pendingCount}
+                                                        </span>
+                                                    )}
                                                 </button>
                                             ))}
                                         </div>
@@ -146,7 +159,10 @@ export function Header() {
                                 </span>
                             )}
                             {isLoaded && (
-                                <span className="text-[10px] text-gray-500 dark:text-gray-400 leading-none">
+                                <span 
+                                    className="text-[10px] text-gray-500 dark:text-gray-400 leading-none"
+                                    data-testid="week-date"
+                                >
                                     Week of {formattedDate}
                                 </span>
                             )}
