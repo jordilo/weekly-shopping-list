@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext, ReactNode, useRef } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 // --- Types ---
 export interface ShoppingItem {
@@ -181,6 +182,8 @@ interface ShoppingListContextType {
 
 const ShoppingListContext = createContext<ShoppingListContextType | undefined>(undefined);
 
+const LAST_LIST_KEY = 'lastSelectedListId';
+
 export function ShoppingListProvider({ children }: { children: ReactNode }) {
     const [items, setItems] = useState<ShoppingItem[]>([]);
     const [historySuggestions, setHistorySuggestions] = useState<HistoryItem[]>([]);
@@ -190,11 +193,24 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
     const [lists, setLists] = useState<ShoppingListInfo[]>([]);
     const [activeListId, setActiveListIdState] = useState<string | null>(null);
 
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
+    const initRef = useRef(false);
+
     const adapter = apiAdapter;
 
     const setActiveListId = useCallback((id: string) => {
         setActiveListIdState(id);
-    }, []);
+        // Persist to localStorage
+        try { localStorage.setItem(LAST_LIST_KEY, id); } catch {}
+        // Update URL if on home page
+        if (pathname === '/') {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('listId', id);
+            router.replace(`/?${params.toString()}`, { scroll: false });
+        }
+    }, [pathname, searchParams, router]);
 
     const activeList = lists.find(l => l.id === activeListId) || null;
 
@@ -209,6 +225,9 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
         }
     }, [adapter]);
     useEffect(() => {
+        if (initRef.current) return;
+        initRef.current = true;
+
         async function init() {
             try {
                 const [loadedLists, defaultListId] = await Promise.all([
@@ -217,8 +236,18 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
                 ]);
                 setLists(loadedLists);
 
-                let idToSet = null;
-                if (defaultListId && loadedLists.some(l => l.id === defaultListId)) {
+                // Priority: URL param > localStorage > API default > first list
+                const urlListId = searchParams.get('listId');
+                let savedListId: string | null = null;
+                try { savedListId = localStorage.getItem(LAST_LIST_KEY); } catch {}
+
+                let idToSet: string | null = null;
+
+                if (urlListId && loadedLists.some(l => l.id === urlListId)) {
+                    idToSet = urlListId;
+                } else if (savedListId && loadedLists.some(l => l.id === savedListId)) {
+                    idToSet = savedListId;
+                } else if (defaultListId && loadedLists.some(l => l.id === defaultListId)) {
                     idToSet = defaultListId;
                 } else if (loadedLists.length > 0) {
                     idToSet = loadedLists[0].id;
@@ -226,6 +255,14 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
 
                 if (idToSet) {
                     setActiveListIdState(idToSet);
+                    // Persist to localStorage
+                    try { localStorage.setItem(LAST_LIST_KEY, idToSet); } catch {}
+                    // Update URL if on home page and param is missing or different
+                    if (pathname === '/' && urlListId !== idToSet) {
+                        const params = new URLSearchParams(searchParams.toString());
+                        params.set('listId', idToSet);
+                        router.replace(`/?${params.toString()}`, { scroll: false });
+                    }
                 } else {
                     setIsLoaded(true);
                 }
@@ -235,7 +272,8 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
             }
         }
         init();
-    }, [adapter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const refresh = useCallback(async () => {
         if (!activeListId) return;

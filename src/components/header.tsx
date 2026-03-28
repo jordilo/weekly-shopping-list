@@ -126,6 +126,9 @@ export function Header() {
                                                     onClick={() => {
                                                         setActiveListId(list.id);
                                                         setShowListPicker(false);
+                                                        if (pathname === '/') {
+                                                            router.replace(`/?listId=${list.id}`, { scroll: false });
+                                                        }
                                                     }}
                                                     className={cn(
                                                         "w-full text-left px-4 py-2 text-sm transition-colors",

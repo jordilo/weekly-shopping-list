@@ -52,6 +52,7 @@ test.describe('Shopping Lists Management', () => {
         await page.fill('[data-testid="new-list-input"]', uniqueListName);
         await page.click('button:has-text("Create")');
 
+        await page.waitForTimeout(1000);
         // Verify it was created
         await expect(page.locator('text=' + uniqueListName)).toBeVisible();
 
@@ -63,6 +64,8 @@ test.describe('Shopping Lists Management', () => {
         await defaultPromise;
 
         // Reload home page and see if it's the active one
+        // Clear localStorage so it falls back to the API default
+        await page.evaluate(() => localStorage.removeItem('lastSelectedListId'));
         await page.goto('/');
         await expect(page.locator('button#list-selector')).toContainText(uniqueListName);
     });
