@@ -7,8 +7,10 @@ import { Plus, Trash2, Star, Settings, Pencil, X, Check } from 'lucide-react';
 import { PageContainer } from '@/components/page-container';
 import Link from 'next/link';
 import { Input, Button, Card, CardHeader, CardBody, Divider } from '@heroui/react';
+import { FormattedMessage, useIntl } from 'react-intl';
 
 export default function ListsPage() {
+    const intl = useIntl();
     const { lists, refreshLists, activeListId } = useShoppingList();
     const { user } = useAuth();
     const [newListName, setNewListName] = useState('');
@@ -47,7 +49,7 @@ export default function ListsPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Delete this list and all its items? This cannot be undone.')) return;
+        if (!window.confirm(intl.formatMessage({ id: 'lists.deleteConfirm', defaultMessage: 'Delete this list and all its items? This cannot be undone.' }))) return;
         await fetch(`/api/lists/${id}`, { method: 'DELETE' });
         await refreshLists();
     };
@@ -74,17 +76,21 @@ export default function ListsPage() {
     return (
         <PageContainer className="space-y-8 pb-32">
             <header className="mb-2">
-                <p className="text-gray-500 dark:text-gray-400">Create and manage your shopping lists.</p>
+                <p className="text-gray-500 dark:text-gray-400">
+                    <FormattedMessage id="lists.description" defaultMessage="Create and manage your shopping lists." />
+                </p>
             </header>
 
             {/* Create new list */}
             <Card className="border border-gray-200 dark:border-gray-800 shadow-sm" data-testid="my-lists-card">
                 <CardHeader className="p-6 bg-gray-50/50 dark:bg-gray-900/50 flex flex-col gap-4">
-                    <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Create New List</h2>
+                    <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                        <FormattedMessage id="lists.createNew" defaultMessage="Create New List" />
+                    </h2>
                     <form onSubmit={handleCreate} className="flex gap-3 w-full">
                         <Input
                             type="text"
-                            placeholder="List name..."
+                            placeholder={intl.formatMessage({ id: 'lists.namePlaceholder', defaultMessage: 'List name...' })}
                             value={newListName}
                             onValueChange={setNewListName}
                             variant="bordered"
@@ -103,20 +109,26 @@ export default function ListsPage() {
                             startContent={<Plus size={20} />}
                             id="create-list-btn"
                         >
-                            <span>Create</span>
+                            <span><FormattedMessage id="action.create" defaultMessage="Create" /></span>
                         </Button>
                     </form>
                 </CardHeader>
                 <Divider />
                 <CardBody className="p-0">
                     <div className="p-6 border-b dark:border-gray-800 bg-gray-50/30 dark:bg-gray-900/30">
-                        <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">My Lists</h2>
+                        <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                            <FormattedMessage id="lists.myLists" defaultMessage="My Lists" />
+                        </h2>
                     </div>
                     <div className="flex flex-col">
                         {ownedLists.length === 0 ? (
                             <div className="text-center py-12 text-gray-500">
-                                <p className="font-medium text-lg">No lists yet.</p>
-                                <p className="text-sm mt-1">Create one above to start shopping.</p>
+                                <p className="font-medium text-lg">
+                                    <FormattedMessage id="lists.noLists" defaultMessage="No lists yet." />
+                                </p>
+                                <p className="text-sm mt-1">
+                                    <FormattedMessage id="lists.createHelp" defaultMessage="Create one above to start shopping." />
+                                </p>
                             </div>
                         ) : (
                             ownedLists.map((list: ShoppingListInfo, index: number) => (
@@ -147,7 +159,9 @@ export default function ListsPage() {
             {subscribedLists.length > 0 && (
                 <Card className="border border-gray-200 dark:border-gray-800 shadow-sm mt-8" data-testid="shared-lists-card">
                     <CardHeader className="p-6 bg-gray-50/50 dark:bg-gray-900/50">
-                        <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Shared with Me</h2>
+                        <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                            <FormattedMessage id="lists.sharedWithMe" defaultMessage="Shared with Me" />
+                        </h2>
                     </CardHeader>
                     <Divider />
                     <CardBody className="p-0">
@@ -199,6 +213,7 @@ function ListRow({
     list, isDefault, isActive, isEditing, editName,
     onSetDefault, onDelete, onStartEdit, onCancelEdit, onSaveEdit, onEditNameChange
 }: ListRowProps) {
+    const intl = useIntl();
     return (
         <div className={`flex items-center gap-3 p-4 px-6 transition-colors ${isActive ? 'bg-blue-50 dark:bg-blue-950/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
             }`}>
@@ -209,7 +224,10 @@ function ListRow({
                     ? 'text-yellow-500'
                     : 'text-gray-300 dark:text-gray-600 hover:text-yellow-400'
                     }`}
-                title={isDefault ? 'Default list' : 'Set as default'}
+                title={isDefault 
+                    ? intl.formatMessage({ id: 'lists.defaultList', defaultMessage: 'Default list' }) 
+                    : intl.formatMessage({ id: 'lists.setDefault', defaultMessage: 'Set as default' })
+                }
             >
                 <Star size={18} fill={isDefault ? 'currentColor' : 'none'} />
             </button>
@@ -252,7 +270,9 @@ function ListRow({
                         {list.name}
                     </span>
                     {list.role === 'member' && (
-                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">Shared list</span>
+                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">
+                            <FormattedMessage id="lists.sharedList" defaultMessage="Shared list" />
+                        </span>
                     )}
                 </div>
             )}
@@ -269,7 +289,7 @@ function ListRow({
                                 size="sm"
                                 variant="light"
                                 className="text-gray-400 hover:text-blue-600"
-                                title="List settings"
+                                title={intl.formatMessage({ id: 'action.listSettings', defaultMessage: 'List settings' })}
                             >
                                 <Settings size={16} />
                             </Button>
@@ -280,7 +300,7 @@ function ListRow({
                                     size="sm"
                                     variant="light"
                                     className="text-gray-400 hover:text-gray-600"
-                                    title="Rename"
+                                    title={intl.formatMessage({ id: 'action.rename', defaultMessage: 'Rename' })}
                                 >
                                     <Pencil size={16} />
                                 </Button>
@@ -293,7 +313,7 @@ function ListRow({
                                     variant="light"
                                     color="danger"
                                     className="text-gray-400 hover:text-red-500"
-                                    title="Delete list"
+                                    title={intl.formatMessage({ id: 'action.deleteList', defaultMessage: 'Delete list' })}
                                 >
                                     <Trash2 size={16} />
                                 </Button>

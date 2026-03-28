@@ -2,6 +2,7 @@
 
 import { Card, CardBody, CardHeader } from "@heroui/react";
 import { Mail, Check, X } from "lucide-react";
+import { FormattedMessage, useIntl } from "react-intl";
 
 interface PendingInvitation {
     id: string;
@@ -14,6 +15,7 @@ interface InvitationsSectionProps {
 }
 
 export function InvitationsSection({ invitations, onRespond }: InvitationsSectionProps) {
+    const intl = useIntl();
     if (invitations.length === 0) return null;
 
     return (
@@ -22,9 +24,11 @@ export function InvitationsSection({ invitations, onRespond }: InvitationsSectio
                 <CardHeader className="pb-0 pt-6 px-6 flex-col items-start">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
                         <Mail size={20} />
-                        Pending Invitations
+                        <FormattedMessage id="settings.invitations" defaultMessage="Pending Invitations" />
                     </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">You&apos;ve been invited to join these lists.</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        <FormattedMessage id="settings.invitationsDesc" defaultMessage="You've been invited to join these lists." />
+                    </p>
                 </CardHeader>
                 <CardBody className="px-6 py-6">
                     <div className="space-y-3">
@@ -36,7 +40,7 @@ export function InvitationsSection({ invitations, onRespond }: InvitationsSectio
                                 <button
                                     onClick={() => onRespond(inv.id, 'accept')}
                                     className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30 rounded-lg transition-colors"
-                                    title="Accept"
+                                    title={intl.formatMessage({ id: 'action.accept', defaultMessage: 'Accept' })}
                                     id={`accept-invite-${inv.id}`}
                                 >
                                     <Check size={18} />
@@ -44,7 +48,7 @@ export function InvitationsSection({ invitations, onRespond }: InvitationsSectio
                                 <button
                                     onClick={() => onRespond(inv.id, 'reject')}
                                     className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
-                                    title="Reject"
+                                    title={intl.formatMessage({ id: 'action.reject', defaultMessage: 'Reject' })}
                                 >
                                     <X size={18} />
                                 </button>

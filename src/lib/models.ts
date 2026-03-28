@@ -5,6 +5,7 @@ const UserSchema = new Schema({
     email: { type: String, required: true, unique: true },
     name: { type: String },
     picture: { type: String },
+    language: { type: String, enum: ['en', 'es', 'ca'], default: 'en' },
     defaultListId: { type: Schema.Types.ObjectId, ref: 'ShoppingList' },
     createdAt: { type: Number, default: () => Date.now() },
 });

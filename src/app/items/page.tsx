@@ -5,9 +5,11 @@ import { Plus, Trash2, Search, Edit2, Check, X } from 'lucide-react';
 import { useShoppingList } from '@/lib/hooks/use-shopping-list';
 import { Input, Button, Select, SelectItem, Card, CardHeader, CardBody, Divider } from '@heroui/react';
 import { PageContainer } from '@/components/page-container';
+import { FormattedMessage, useIntl } from 'react-intl';
 
 export default function ItemsManagerPage() {
     const { historySuggestions, categories, deleteHistoryItem, addHistoryItem, renameHistoryItem, isLoaded } = useShoppingList();
+    const intl = useIntl();
     const [newItemName, setNewItemName] = useState('');
     const [newItemCategory, setNewItemCategory] = useState('Uncategorized');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,20 +62,22 @@ export default function ItemsManagerPage() {
     };
 
     if (!isLoaded) {
-        return <div className="flex h-screen items-center justify-center text-gray-500">Loading...</div>;
+        return <div className="flex h-screen items-center justify-center text-gray-500"><FormattedMessage id="app.loading" defaultMessage="Loading..." /></div>;
     }
 
     return (
         <PageContainer className="pb-32">
             <Card className="border border-gray-200 dark:border-gray-800 shadow-sm mb-8">
                 <CardHeader className="p-6 bg-gray-50/50 dark:bg-gray-900/50 flex flex-col gap-4">
-                    <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Add New Master Item</h2>
+                    <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                        <FormattedMessage id="items.addMasterItem" defaultMessage="Add New Master Item" />
+                    </h2>
                     <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-3 w-full">
                         <Input
                             type="text"
                             value={newItemName}
                             onValueChange={setNewItemName}
-                            placeholder="Item name (e.g. Milk)..."
+                            placeholder={intl.formatMessage({ id: 'items.namePlaceholder', defaultMessage: 'Item name (e.g. Milk)...' })}
                             variant="bordered"
                             className="flex-1"
                             classNames={{
@@ -94,7 +98,7 @@ export default function ItemsManagerPage() {
                                 }
                             }}
                         >
-                            {[ { name: 'Uncategorized' }, ...categories ].map(cat => (
+                            {[ { name: intl.formatMessage({ id: 'category.uncategorized', defaultMessage: 'Uncategorized' }) }, ...categories ].map(cat => (
                                 <SelectItem key={cat.name}>{cat.name}</SelectItem>
                             ))}
                         </Select>
@@ -105,7 +109,7 @@ export default function ItemsManagerPage() {
                             className="font-bold"
                             startContent={<Plus size={20} />}
                         >
-                            <span>Add</span>
+                            <span><FormattedMessage id="action.add" defaultMessage="Add" /></span>
                         </Button>
                     </form>
                 </CardHeader>
@@ -115,7 +119,7 @@ export default function ItemsManagerPage() {
                         <Input
                             data-testid="search-input"
                             type="text"
-                            placeholder="Search items or categories..."
+                            placeholder={intl.formatMessage({ id: 'items.searchPlaceholder', defaultMessage: 'Search items or categories...' })}
                             value={searchQuery}
                             onValueChange={setSearchQuery}
                             startContent={<Search className="text-gray-400" size={18} />}
@@ -152,7 +156,7 @@ export default function ItemsManagerPage() {
                                                     }
                                                 }}
                                             >
-                                                {[ { name: 'Uncategorized' }, ...categories ].map(cat => (
+                                                {[ { name: intl.formatMessage({ id: 'category.uncategorized', defaultMessage: 'Uncategorized' }) }, ...categories ].map(cat => (
                                                     <SelectItem key={cat.name}>{cat.name}</SelectItem>
                                                 ))}
                                             </Select>
@@ -169,7 +173,7 @@ export default function ItemsManagerPage() {
                                             <>
                                                 <Button
                                                     isIconOnly
-                                                    title="Save Changes"
+                                                    title={intl.formatMessage({ id: 'action.saveChanges', defaultMessage: 'Save Changes' })}
                                                     variant="flat"
                                                     color="success"
                                                     size="sm"
@@ -191,7 +195,7 @@ export default function ItemsManagerPage() {
                                             <>
                                                 <Button
                                                     isIconOnly
-                                                    title="Edit Item"
+                                                    title={intl.formatMessage({ id: 'action.editItem', defaultMessage: 'Edit Item' })}
                                                     variant="light"
                                                     size="sm"
                                                     onPress={() => startEditing(item.name, item.category)}
@@ -201,12 +205,12 @@ export default function ItemsManagerPage() {
                                                 </Button>
                                                 <Button
                                                     isIconOnly
-                                                    title="Delete Item"
+                                                    title={intl.formatMessage({ id: 'action.deleteItem', defaultMessage: 'Delete Item' })}
                                                     variant="light"
                                                     color="danger"
                                                     size="sm"
                                                     onPress={() => {
-                                                        if (confirm(`Delete "${item.name}" from suggestions?`)) deleteHistoryItem(item.name);
+                                                        if (window.confirm(intl.formatMessage({ id: 'items.deleteConfirm', defaultMessage: 'Delete "{name}" from suggestions?' }, { name: item.name }))) deleteHistoryItem(item.name);
                                                     }}
                                                     className="text-gray-400 hover:text-red-500"
                                                 >
@@ -221,8 +225,15 @@ export default function ItemsManagerPage() {
                         ))}
                         {filteredItems.length === 0 && (
                             <div className="text-center py-12 text-gray-500">
-                                <p className="font-medium text-lg">{searchQuery ? 'No items match your search.' : 'No items in the master list yet.'}</p>
-                                <p className="text-sm mt-1">Add items to build your master shopping list.</p>
+                                <p className="font-medium text-lg">
+                                    {searchQuery 
+                                        ? <FormattedMessage id="items.noMatch" defaultMessage="No items match your search." /> 
+                                        : <FormattedMessage id="items.noMasterItems" defaultMessage="No items in the master list yet." />
+                                    }
+                                </p>
+                                <p className="text-sm mt-1">
+                                    <FormattedMessage id="items.addItemsHelp" defaultMessage="Add items to build your master shopping list." />
+                                </p>
                             </div>
                         )}
                     </div>

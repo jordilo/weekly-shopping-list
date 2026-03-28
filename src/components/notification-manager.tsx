@@ -1,6 +1,6 @@
 "use client";
-
 import { usePushNotifications } from '@/lib/use-push-notifications';
+import { FormattedMessage } from 'react-intl';
 
 export function NotificationManager() {
     const { 
@@ -27,41 +27,72 @@ export function NotificationManager() {
                     {showInstructions ? (
                         <>
                             <div>
-                                <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-lg">Setup iPhone Alerts</h3>
+                                <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-lg">
+                                    <FormattedMessage id="notificationManager.iosSetupTitle" defaultMessage="Setup iPhone Alerts" />
+                                </h3>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                    To receive notifications on iPhone, you must add this app to your Home Screen:
+                                    <FormattedMessage id="notificationManager.iosSetupDesc" defaultMessage="To receive notifications on iPhone, you must add this app to your Home Screen:" />
                                 </p>
                                 <ol className="text-left text-xs text-gray-600 dark:text-gray-300 mt-3 space-y-2 list-decimal list-inside">
-                                    <li>Tap the <strong>Share</strong> button ( <svg className="inline w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6a3 3 0 100 2.684m0-2.684l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg> or <svg className="inline w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg> )</li>
-                                    <li>Scroll down and tap <strong>&apos;Add to Home Screen&apos;</strong></li>
-                                    <li>Open the app from your <strong>Home Screen</strong> to enable alerts</li>
+                                    <li>
+                                        <FormattedMessage 
+                                            id="notificationManager.iosStep1" 
+                                            defaultMessage="Tap the <strong>Share</strong> button ( {icon1} or {icon2} )" 
+                                            values={{
+                                                strong: (chunks: React.ReactNode) => <strong>{chunks}</strong>,
+                                                icon1: <svg className="inline w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6a3 3 0 100 2.684m0-2.684l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>,
+                                                icon2: <svg className="inline w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
+                                            }}
+                                        />
+                                    </li>
+                                    <li>
+                                        <FormattedMessage 
+                                            id="notificationManager.iosStep2" 
+                                            defaultMessage="Scroll down and tap <strong>'Add to Home Screen'</strong>" 
+                                            values={{ strong: (chunks: React.ReactNode) => <strong>{chunks}</strong> }} 
+                                        />
+                                    </li>
+                                    <li>
+                                        <FormattedMessage 
+                                            id="notificationManager.iosStep3" 
+                                            defaultMessage="Open the app from your <strong>Home Screen</strong> to enable alerts" 
+                                            values={{ strong: (chunks: React.ReactNode) => <strong>{chunks}</strong> }} 
+                                        />
+                                    </li>
                                 </ol>
                             </div>
                             <button
                                 onClick={() => setPermissionStatus('denied')}
                                 className="w-full text-blue-600 font-medium py-2 text-sm"
                             >
-                                Got it
+                                <FormattedMessage id="action.gotIt" defaultMessage="Got it" />
                             </button>
                         </>
                     ) : (
                         <>
                             <div>
-                                <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-lg uppercase tracking-tight">Enable Alerts</h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Get notified when someone adds items to the list.</p>
+                                <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-lg uppercase tracking-tight">
+                                    <FormattedMessage id="notificationManager.enableTitle" defaultMessage="Enable Alerts" />
+                                </h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    <FormattedMessage id="notificationManager.enableDesc" defaultMessage="Get notified when someone adds items to the list." />
+                                </p>
                             </div>
                             <button
                                 onClick={subscribe}
                                 disabled={isSubscribing}
                                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold py-3 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer"
                             >
-                                {isSubscribing ? 'Subscribing...' : 'Allow Notifications'}
+                                {isSubscribing 
+                                    ? <FormattedMessage id="action.subscribing" defaultMessage="Subscribing..." /> 
+                                    : <FormattedMessage id="action.allowNotifications" defaultMessage="Allow Notifications" />
+                                }
                             </button>
                             <button
                                 onClick={() => setPermissionStatus('denied')}
                                 className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                             >
-                                Maybe later
+                                <FormattedMessage id="action.maybeLater" defaultMessage="Maybe later" />
                             </button>
                         </>
                     )}

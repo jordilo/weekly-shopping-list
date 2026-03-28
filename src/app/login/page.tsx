@@ -3,6 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import Image from 'next/image';
+import { FormattedMessage } from 'react-intl';
 
 function LoginContent() {
     const searchParams = useSearchParams();
@@ -22,19 +23,19 @@ function LoginContent() {
                         />
                     </div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        Weekly Shopping List
+                        <FormattedMessage id="login.title" defaultMessage="Weekly Shopping List" />
                     </h1>
                     <p className="mt-2 text-gray-500 dark:text-gray-400">
-                        Sign in to manage your shopping lists
+                        <FormattedMessage id="login.subtitle" defaultMessage="Sign in to manage your shopping lists" />
                     </p>
                 </div>
 
                 <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 ring-1 ring-gray-100 dark:ring-gray-800 p-6">
                     {error && (
                         <div className="mb-4 p-3 text-sm text-red-600 bg-red-50 dark:bg-red-950/30 dark:text-red-400 rounded-lg">
-                            {error === 'auth_failed' && 'Authentication was cancelled or failed.'}
-                            {error === 'no_email' && 'Could not get email from Google.'}
-                            {error === 'callback_failed' && 'Something went wrong. Please try again.'}
+                            {error === 'auth_failed' && <FormattedMessage id="error.authFailed" defaultMessage="Authentication was cancelled or failed." />}
+                            {error === 'no_email' && <FormattedMessage id="error.noEmail" defaultMessage="Could not get email from Google." />}
+                            {error === 'callback_failed' && <FormattedMessage id="error.callbackFailed" defaultMessage="Something went wrong. Please try again." />}
                         </div>
                     )}
 
@@ -49,12 +50,12 @@ function LoginContent() {
                             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                         </svg>
-                        Sign in with Google
+                        <FormattedMessage id="action.signInWithGoogle" defaultMessage="Sign in with Google" />
                     </a>
                 </div>
 
                 <p className="text-center mt-6 text-xs text-gray-400 dark:text-gray-500">
-                    Your data is stored securely and shared only with your chosen collaborators.
+                    <FormattedMessage id="login.securityInfo" defaultMessage="Your data is stored securely and shared only with your chosen collaborators." />
                 </p>
             </div>
         </div>
@@ -65,7 +66,7 @@ export default function LoginPage() {
     return (
         <Suspense fallback={
             <div className="min-h-screen flex items-center justify-center">
-                <div className="text-gray-400">Loading...</div>
+                <div className="text-gray-400"><FormattedMessage id="app.loading" defaultMessage="Loading..." /></div>
             </div>
         }>
             <LoginContent />

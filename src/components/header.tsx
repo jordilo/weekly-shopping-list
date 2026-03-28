@@ -8,6 +8,7 @@ import { Menu, X, Settings, LogOut, ChevronDown, RefreshCw, PlusCircle, ArrowLef
 import { useShoppingList } from '@/lib/hooks/use-shopping-list';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
+import { useIntl, FormattedMessage } from 'react-intl';
 
 export function Header() {
     const { 
@@ -27,6 +28,7 @@ export function Header() {
     const pickerRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
     const pathname = usePathname();
+    const intl = useIntl();
 
     // Close menus when clicking outside
     useEffect(() => {
@@ -44,7 +46,7 @@ export function Header() {
 
     if (pathname === '/login') return null;
 
-    const formattedDate = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(weekStartDate);
+    const formattedDate = new Intl.DateTimeFormat(intl.locale, { month: 'short', day: 'numeric' }).format(weekStartDate);
 
     const handleLogout = async () => {
         try {
@@ -61,15 +63,15 @@ export function Header() {
     const isHome = pathname === '/';
     
     const pageTitles: Record<string, string> = {
-        '/items': 'Manage Items',
-        '/categories': 'Manage Categories',
-        '/lists': 'Shopping Lists',
-        '/settings': 'Settings',
+        '/items': intl.formatMessage({ id: 'page.manageItems', defaultMessage: 'Manage Items' }),
+        '/categories': intl.formatMessage({ id: 'page.manageCategories', defaultMessage: 'Manage Categories' }),
+        '/lists': intl.formatMessage({ id: 'page.shoppingLists', defaultMessage: 'Shopping Lists' }),
+        '/settings': intl.formatMessage({ id: 'page.settings', defaultMessage: 'Settings' }),
     };
 
     let currentTitle = pageTitles[pathname] || '';
     if (!currentTitle && pathname.startsWith('/lists/') && pathname.endsWith('/settings')) {
-        currentTitle = 'List Settings';
+        currentTitle = intl.formatMessage({ id: 'page.listSettings', defaultMessage: 'List Settings' });
     }
 
     return (
@@ -80,7 +82,7 @@ export function Header() {
                         <button
                             onClick={() => router.back()}
                             className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors flex-shrink-0"
-                            aria-label="Back"
+                            aria-label={intl.formatMessage({ id: 'action.back', defaultMessage: 'Back' })}
                         >
                             <ArrowLeft size={20} />
                         </button>
@@ -114,7 +116,7 @@ export function Header() {
                                         className="flex items-center gap-1 text-sm font-semibold text-gray-900 dark:text-gray-100 truncate"
                                         id="list-selector"
                                     >
-                                        <span className="truncate">{activeList?.name || 'Select List'}</span>
+                                        <span className="truncate">{activeList?.name || intl.formatMessage({ id: 'header.selectList', defaultMessage: 'Select List' })}</span>
                                         <ChevronDown size={14} className={cn("transition-transform flex-shrink-0", showListPicker && "rotate-180")} />
                                     </button>
                                     
@@ -155,7 +157,7 @@ export function Header() {
                                 </div>
                             ) : (
                                 <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                                    {activeList?.name || 'Weekly Shop'}
+                                    {activeList?.name || intl.formatMessage({ id: 'header.weeklyShop', defaultMessage: 'Weekly Shop' })}
                                 </span>
                             )}
                             {isLoaded && (
@@ -163,7 +165,7 @@ export function Header() {
                                     className="text-[10px] text-gray-500 dark:text-gray-400 leading-none"
                                     data-testid="week-date"
                                 >
-                                    Week of {formattedDate}
+                                    {intl.formatMessage({ id: 'header.weekOf', defaultMessage: 'Week of {date}' }, { date: formattedDate })}
                                 </span>
                             )}
                         </div>
@@ -173,23 +175,23 @@ export function Header() {
 
             <div className="flex items-center gap-1">
                 {isHome && (
-                    <button
-                        onClick={refresh}
-                        className="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                        aria-label="Refresh list"
-                        title="Refresh list"
-                    >
+                        <button
+                            onClick={refresh}
+                            className="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            aria-label={intl.formatMessage({ id: 'action.refresh', defaultMessage: 'Refresh list' })}
+                            title={intl.formatMessage({ id: 'action.refresh', defaultMessage: 'Refresh list' })}
+                        >
                         <RefreshCw size={18} />
                     </button>
                 )}
                 
                 {/* Burger Menu */}
                 <div className="relative" ref={menuRef}>
-                    <button
-                        onClick={() => setShowMenu(!showMenu)}
-                        className="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-                        aria-label="Open menu"
-                    >
+                        <button
+                            onClick={() => setShowMenu(!showMenu)}
+                            className="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                            aria-label={intl.formatMessage({ id: 'action.openMenu', defaultMessage: 'Open menu' })}
+                        >
                         {showMenu ? <X size={20} /> : <Menu size={20} />}
                     </button>
 
@@ -201,7 +203,7 @@ export function Header() {
                                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                                 >
                                     <PlusCircle size={16} />
-                                    <span>New Week</span>
+                                    <span><FormattedMessage id="header.newWeek" defaultMessage="New Week" /></span>
                                 </button>
                             )}
                             <Link
@@ -210,7 +212,7 @@ export function Header() {
                                 className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                             >
                                 <Settings size={16} />
-                                <span>Settings</span>
+                                <span><FormattedMessage id="header.settings" defaultMessage="Settings" /></span>
                             </Link>
                             <div className="h-px bg-gray-100 dark:bg-gray-800 my-1" />
                             <button
@@ -218,7 +220,7 @@ export function Header() {
                                 className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
                             >
                                 <LogOut size={16} />
-                                <span>Logout</span>
+                                <span><FormattedMessage id="header.logout" defaultMessage="Logout" /></span>
                             </button>
                         </div>
                     )}
