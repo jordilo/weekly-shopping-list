@@ -44,9 +44,9 @@ test.describe('Visual Regression Testing', () => {
             });
         });
 
-        await page.route('/api/meta*', async (route) => {
+        await page.route('**/api/meta*', async (route) => {
             await route.fulfill({
-                json: { weekStartDate: '2026-02-23' }
+                json: { value: '1774137600000' } // Feb 22, 2026
             });
         });
 

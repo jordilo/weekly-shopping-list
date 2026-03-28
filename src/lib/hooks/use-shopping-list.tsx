@@ -30,6 +30,7 @@ export interface ShoppingListInfo {
     role: 'owner' | 'member';
     ownerId: string;
     createdAt: number;
+    pendingCount: number;
 }
 
 // --- Storage Interface (Adapter Pattern) ---
@@ -302,6 +303,15 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
             refresh();
         }
     }, [activeListId, refresh]);
+
+    // Keep active list's pendingCount in sync with items
+    useEffect(() => {
+        if (!activeListId) return;
+        const pendingCount = items.filter(i => !i.completed).length;
+        setLists(prev => prev.map(l => 
+            l.id === activeListId ? { ...l, pendingCount } : l
+        ));
+    }, [items, activeListId]);
 
     // Auto-refresh: poll every 30 seconds when the tab is visible,
     // and trigger an immediate refresh when the tab regains focus.
