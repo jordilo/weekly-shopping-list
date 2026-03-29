@@ -14,6 +14,7 @@ import {
     Chip
 } from "@heroui/react";
 import { useState } from 'react';
+import { FormattedMessage, useIntl } from 'react-intl';
 
 interface ShoppingListProps {
     items: ShoppingItem[];
@@ -39,8 +40,8 @@ export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateIt
     if (items.length === 0) {
         return (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                <p className="text-lg">Your list is empty.</p>
-                <p className="text-sm">Add items to get started!</p>
+                <p className="text-lg"><FormattedMessage id="list.emptyTitle" defaultMessage="Your list is empty." /></p>
+                <p className="text-sm"><FormattedMessage id="list.emptySubtitle" defaultMessage="Add items to get started!" /></p>
             </div>
         );
     }
@@ -107,7 +108,7 @@ export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateIt
             {completedItems.length > 0 && (
                 <div className="space-y-2">
                     <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider pt-4 pb-2 border-b dark:border-gray-800">
-                        Completed ({completedItems.length})
+                        <FormattedMessage id="list.completedTitle" defaultMessage="Completed ({count})" values={{ count: completedItems.length }} />
                     </h3>
                     <div className="space-y-2 opacity-60 hover:opacity-100 transition-opacity">
                         {completedItems.map((item) => (
@@ -185,7 +186,7 @@ function ShoppingListItem({
                             </Chip>
                         )}
                         <span className="text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
-                            Qty: {quantity}
+                            <FormattedMessage id="list.qty" defaultMessage="Qty: {quantity}" values={{ quantity }} />
                         </span>
                     </div>
                 </div>
@@ -210,6 +211,7 @@ interface ItemEditModalProps {
 function ItemEditModal({ isOpen, onOpenChange, item, categories, onUpdate, onDelete }: ItemEditModalProps) {
     const [quantity, setQuantity] = useState(item?.quantity || '1');
     const [category, setCategory] = useState(item?.category || 'Uncategorized');
+    const intl = useIntl();
 
 
     const handleSave = (onClose: () => void) => {
@@ -223,7 +225,7 @@ function ItemEditModal({ isOpen, onOpenChange, item, categories, onUpdate, onDel
 
     const handleDelete = (onClose: () => void) => {
         if (!item) return;
-        if (confirm(`Delete ${item.name}?`)) {
+        if (window.confirm(intl.formatMessage({ id: 'action.deleteConfirm', defaultMessage: 'Delete {name}?' }, { name: item.name }))) {
             onDelete(item.id);
             onClose();
         }
@@ -252,22 +254,26 @@ function ItemEditModal({ isOpen, onOpenChange, item, categories, onUpdate, onDel
                 {(onClose) => !item ? null : (
                     <>
                         <ModalHeader className="flex flex-col gap-1">
-                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Item</h2>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Update details for this product</p>
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                                <FormattedMessage id="modal.editItemMode" defaultMessage="Edit Item" />
+                            </h2>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                <FormattedMessage id="modal.editItemDesc" defaultMessage="Update details for this product" />
+                            </p>
                         </ModalHeader>
                         <ModalBody>
                             <div className="flex flex-col gap-8 w-full py-2">
                                 <div className="flex flex-col gap-2">
                                     <label className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                                        Product Name
+                                        <FormattedMessage id="modal.productName" defaultMessage="Product Name" />
                                     </label>
                                     <Input
                                         value={item.name}
                                         labelPlacement="outside"
-                                        label="Product Name"
+                                        label={intl.formatMessage({ id: 'modal.productName', defaultMessage: 'Product Name' })}
                                         isReadOnly
                                         variant="bordered"
-                                        description="Name cannot be changed here"
+                                        description={intl.formatMessage({ id: 'modal.readonlyDesc', defaultMessage: 'Name cannot be changed here' })}
                                         classNames={{
                                             input: "text-gray-500 bg-gray-50/50 dark:bg-gray-800/50",
                                             inputWrapper: "border-gray-200 dark:border-gray-700",
@@ -277,13 +283,13 @@ function ItemEditModal({ isOpen, onOpenChange, item, categories, onUpdate, onDel
                                 
                                 <div className="flex flex-col gap-2">
                                     <label htmlFor="quantity-input" className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                                        Quantity
+                                        <FormattedMessage id="modal.quantity" defaultMessage="Quantity" />
                                     </label>
                                     <Input
                                         id="quantity-input"
-                                        label="Quantity"
+                                        label={intl.formatMessage({ id: 'modal.quantity', defaultMessage: 'Quantity' })}
                                         labelPlacement="outside"
-                                        placeholder="e.g., 2, 500g, 1 pack"
+                                        placeholder={intl.formatMessage({ id: 'modal.quantityPlaceholder', defaultMessage: 'e.g., 2, 500g, 1 pack' })}
                                         value={quantity}
                                         onValueChange={setQuantity}
                                         variant="bordered"
@@ -295,11 +301,11 @@ function ItemEditModal({ isOpen, onOpenChange, item, categories, onUpdate, onDel
 
                                 <div className="flex flex-col gap-2">
                                     <label htmlFor="category-select" className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                                        Category
+                                        <FormattedMessage id="modal.category" defaultMessage="Category" />
                                     </label>
                                     <Select
                                         id="category-select"
-                                        label="Category"
+                                        label={intl.formatMessage({ id: 'modal.category', defaultMessage: 'Category' })}
                                         labelPlacement="outside"
                                         selectedKeys={[category]}
                                         onSelectionChange={(keys) => setCategory(String(Array.from(keys)[0]))}
@@ -329,14 +335,14 @@ function ItemEditModal({ isOpen, onOpenChange, item, categories, onUpdate, onDel
                                 onPress={() => handleDelete(onClose)}
                                 startContent={<Trash2 size={18} />}
                             >
-                                Delete
+                                <FormattedMessage id="action.delete" defaultMessage="Delete" />
                             </Button>
                             <div className="flex gap-3">
                                 <Button variant="light" onPress={onClose}>
-                                    Cancel
+                                    <FormattedMessage id="action.cancel" defaultMessage="Cancel" />
                                 </Button>
                                 <Button color="primary" onPress={() => handleSave(onClose)} className="font-bold">
-                                    Save Changes
+                                    <FormattedMessage id="action.saveChanges" defaultMessage="Save Changes" />
                                 </Button>
                             </div>
                         </ModalFooter>

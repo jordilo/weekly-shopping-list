@@ -5,8 +5,10 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useShoppingList } from '@/lib/hooks/use-shopping-list';
 import { Input, Button, Card, CardHeader, CardBody, Divider } from '@heroui/react';
 import { PageContainer } from '@/components/page-container';
+import { FormattedMessage, useIntl } from 'react-intl';
 
 export default function CategoriesPage() {
+    const intl = useIntl();
     const { categories, addCategory, deleteCategory, isLoaded } = useShoppingList();
     const [newCategory, setNewCategory] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,20 +27,22 @@ export default function CategoriesPage() {
     };
 
     if (!isLoaded) {
-        return <div className="flex h-screen items-center justify-center text-gray-500">Loading...</div>;
+        return <div className="flex h-screen items-center justify-center text-gray-500"><FormattedMessage id="app.loading" defaultMessage="Loading..." /></div>;
     }
 
     return (
         <PageContainer className="pb-32">
             <Card className="border border-gray-200 dark:border-gray-800 shadow-sm mb-8">
                 <CardHeader className="p-6 bg-gray-50/50 dark:bg-gray-900/50 flex flex-col gap-4">
-                    <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Add New Category</h2>
+                    <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                        <FormattedMessage id="categories.addNew" defaultMessage="Add New Category" />
+                    </h2>
                     <form onSubmit={handleAdd} className="flex gap-3 w-full items-start">
                         <Input
                             type="text"
                             value={newCategory}
                             onValueChange={setNewCategory}
-                            placeholder="New category name..."
+                            placeholder={intl.formatMessage({ id: 'categories.namePlaceholder', defaultMessage: 'New category name...' })}
                             variant="bordered"
                             className="flex-1"
                             classNames={{
@@ -53,7 +57,7 @@ export default function CategoriesPage() {
                             className="font-bold"
                             startContent={<Plus size={20} />}
                         >
-                            <span>Add</span>
+                            <span><FormattedMessage id="action.add" defaultMessage="Add" /></span>
                         </Button>
                     </form>
                 </CardHeader>
@@ -70,9 +74,9 @@ export default function CategoriesPage() {
                                         color="danger"
                                         className="text-gray-400 hover:text-red-500"
                                         onPress={() => {
-                                            if (confirm(`Delete category "${cat.name}"?`)) deleteCategory(cat.id);
+                                            if (window.confirm(intl.formatMessage({ id: 'categories.deleteConfirm', defaultMessage: 'Delete category "{name}"?' }, { name: cat.name }))) deleteCategory(cat.id);
                                         }}
-                                        aria-label={`Delete ${cat.name}`}
+                                        aria-label={intl.formatMessage({ id: 'action.deleteCategoryNamed', defaultMessage: 'Delete {name}' }, { name: cat.name })}
                                     >
                                         <Trash2 size={18} />
                                     </Button>
@@ -82,8 +86,12 @@ export default function CategoriesPage() {
                         ))}
                         {categories.length === 0 && (
                             <div className="text-center py-12 text-gray-500">
-                                <p className="font-medium text-lg">No custom categories yet.</p>
-                                <p className="text-sm mt-1">Add one above to organize your shopping.</p>
+                                <p className="font-medium text-lg">
+                                    <FormattedMessage id="categories.noCategories" defaultMessage="No custom categories yet." />
+                                </p>
+                                <p className="text-sm mt-1">
+                                    <FormattedMessage id="categories.addHelp" defaultMessage="Add one above to organize your shopping." />
+                                </p>
                             </div>
                         )}
                     </div>

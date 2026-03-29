@@ -19,6 +19,7 @@ export async function GET() {
         email: session.email,
         name: session.name,
         picture: session.picture,
+        language: user?.language || 'en',
         defaultListId: user?.defaultListId?.toString() || null,
     });
 }

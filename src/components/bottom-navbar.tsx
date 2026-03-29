@@ -5,20 +5,22 @@ import { usePathname } from 'next/navigation';
 import { ShoppingBasket, List, Tags, Settings, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useShoppingList } from '@/lib/hooks/use-shopping-list';
+import { useIntl, FormattedMessage } from 'react-intl';
 
 export function BottomNavbar() {
     const pathname = usePathname();
     const { lists } = useShoppingList();
+    const intl = useIntl();
 
     // Don't show on login page
     if (pathname === '/login') return null;
 
     const navItems = [
-        { label: 'Shop', href: '/', icon: ShoppingBasket },
-        { label: 'Items', href: '/items', icon: List },
-        { label: 'Lists', href: '/lists', icon: ClipboardList },
-        { label: 'Categories', href: '/categories', icon: Tags },
-        { label: 'Settings', href: '/settings', icon: Settings },
+        { label: intl.formatMessage({ id: 'nav.shop', defaultMessage: 'Shop' }), href: '/', icon: ShoppingBasket },
+        { label: intl.formatMessage({ id: 'nav.items', defaultMessage: 'Items' }), href: '/items', icon: List },
+        { label: intl.formatMessage({ id: 'nav.lists', defaultMessage: 'Lists' }), href: '/lists', icon: ClipboardList },
+        { label: intl.formatMessage({ id: 'nav.categories', defaultMessage: 'Categories' }), href: '/categories', icon: Tags },
+        { label: intl.formatMessage({ id: 'nav.settings', defaultMessage: 'Settings' }), href: '/settings', icon: Settings },
     ];
 
     const totalPending = lists.reduce((sum, list) => sum + (list.pendingCount || 0), 0);
@@ -44,7 +46,9 @@ export function BottomNavbar() {
                                 <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
                                 {isShop && totalPending > 0 && (
                                     <span className="absolute -top-1.5 -right-2 bg-red-500 text-white text-[9px] font-bold px-1 py-0.5 rounded-full min-w-[16px] h-[16px] flex items-center justify-center border-2 border-white dark:border-gray-900">
-                                        {totalPending > 99 ? '99+' : totalPending}
+                                        {totalPending > 99 ? (
+                                            <FormattedMessage id="nav.badge99Plus" defaultMessage="99+" />
+                                        ) : totalPending}
                                     </span>
                                 )}
                             </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, X, Trash2 } from 'lucide-react';
 import { Category } from '@/lib/hooks/use-shopping-list';
+import { FormattedMessage, useIntl } from 'react-intl';
 
 interface CategoryManagerProps {
     categories: Category[];
@@ -12,6 +13,7 @@ interface CategoryManagerProps {
 export function CategoryManager({ categories, onAdd, onDelete, onClose }: CategoryManagerProps) {
     const [newCategory, setNewCategory] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const intl = useIntl();
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -30,7 +32,9 @@ export function CategoryManager({ categories, onAdd, onDelete, onClose }: Catego
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
                 <div className="flex items-center justify-between p-4 border-b dark:border-slate-800">
-                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Manage Categories</h2>
+                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                        <FormattedMessage id="categoryManager.title" defaultMessage="Manage Categories" />
+                    </h2>
                     <button onClick={onClose} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
                         <X size={20} />
                     </button>
@@ -43,7 +47,7 @@ export function CategoryManager({ categories, onAdd, onDelete, onClose }: Catego
                                 <span className="font-medium text-slate-900 dark:text-slate-100">{cat.name}</span>
                                 <button
                                     onClick={() => {
-                                        if (confirm(`Delete category "${cat.name}"?`)) onDelete(cat.id);
+                                        if (window.confirm(intl.formatMessage({ id: 'action.deleteConfirmCat', defaultMessage: 'Delete category "{name}"?' }, { name: cat.name }))) onDelete(cat.id);
                                     }}
                                     className="text-slate-400 hover:text-red-500 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all p-1"
                                 >
@@ -52,7 +56,9 @@ export function CategoryManager({ categories, onAdd, onDelete, onClose }: Catego
                             </div>
                         ))}
                         {categories.length === 0 && (
-                            <p className="text-center text-gray-500 italic py-4">No custom categories yet. Using defaults if available.</p>
+                            <p className="text-center text-gray-500 italic py-4">
+                                <FormattedMessage id="categoryManager.emptyDesc" defaultMessage="No custom categories yet. Using defaults if available." />
+                            </p>
                         )}
                     </div>
                 </div>
@@ -63,7 +69,7 @@ export function CategoryManager({ categories, onAdd, onDelete, onClose }: Catego
                             type="text"
                             value={newCategory}
                             onChange={(e) => setNewCategory(e.target.value)}
-                            placeholder="New category..."
+                            placeholder={intl.formatMessage({ id: 'form.newCategoryPlaceholder', defaultMessage: 'New category...' })}
                             className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
                         />
                         <button

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Input, Button } from '@heroui/react';
+import { FormattedMessage, useIntl } from 'react-intl';
 
 interface AddItemFormProps {
     onAdd: (name: string) => Promise<void> | void;
@@ -10,6 +11,7 @@ interface AddItemFormProps {
 export function AddItemForm({ onAdd, suggestions = [] }: AddItemFormProps) {
     const [name, setName] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const intl = useIntl();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -32,7 +34,7 @@ export function AddItemForm({ onAdd, suggestions = [] }: AddItemFormProps) {
                     list="shopping-history"
                     value={name}
                     onValueChange={setName}
-                    placeholder="Add item (e.g., Milk)"
+                    placeholder={intl.formatMessage({ id: 'form.addItemPlaceholder', defaultMessage: 'Add item (e.g., Milk)' })}
                     variant="bordered"
                     classNames={{
                         inputWrapper: "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700",
@@ -53,7 +55,7 @@ export function AddItemForm({ onAdd, suggestions = [] }: AddItemFormProps) {
                 className="font-bold w-full sm:w-auto"
                 startContent={!isSubmitting ? <Plus size={20} /> : undefined}
             >
-                <span>Add</span>
+                <span><FormattedMessage id="action.add" defaultMessage="Add" /></span>
             </Button>
         </form>
     );

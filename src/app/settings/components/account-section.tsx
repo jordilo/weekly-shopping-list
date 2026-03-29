@@ -3,6 +3,7 @@
 import { Card, CardBody, CardHeader } from "@heroui/react";
 import Image from "next/image";
 import { LogOut } from "lucide-react";
+import { FormattedMessage } from "react-intl";
 
 interface User {
     name: string;
@@ -20,7 +21,9 @@ export function AccountSection({ user, onLogout }: AccountSectionProps) {
         <section>
             <Card className="bg-white dark:bg-[#18181b] shadow-sm ring-1 ring-gray-200 dark:ring-gray-800 border-none">
                 <CardHeader className="pb-0 pt-6 px-6 flex-col items-start">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Account</h2>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                        <FormattedMessage id="settings.account" defaultMessage="Account" />
+                    </h2>
                 </CardHeader>
                 <CardBody className="px-6 py-6">
                     <div className="flex items-center gap-4 mb-4">
@@ -42,7 +45,7 @@ export function AccountSection({ user, onLogout }: AccountSectionProps) {
                         id="logout-btn"
                     >
                         <LogOut size={16} />
-                        Sign Out
+                        <FormattedMessage id="action.signOut" defaultMessage="Sign Out" />
                     </button>
                 </CardBody>
             </Card>

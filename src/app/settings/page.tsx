@@ -12,6 +12,7 @@ import { InvitationsSection } from "./components/invitations-section";
 import { SubscriptionsSection } from "./components/subscriptions-section";
 import { NotificationsSection } from "./components/notifications-section";
 import { AppearanceSection } from "./components/appearance-section";
+import { LanguageSection } from "./components/language-section";
 
 interface PendingInvitation {
     id: string;
@@ -27,7 +28,10 @@ interface Subscription {
     role: string;
 }
 
+import { useIntl, FormattedMessage } from "react-intl";
+
 export default function SettingsPage() {
+    const intl = useIntl();
     const [mounted, setMounted] = useState(false);
     const { theme, setTheme } = useTheme();
     const { user, logout } = useAuth();
@@ -85,7 +89,7 @@ export default function SettingsPage() {
     };
 
     const handleUnsubscribe = async (listId: string) => {
-        if (!confirm('Unsubscribe from this list? You won\'t see it anymore.')) return;
+        if (!confirm(intl.formatMessage({ id: 'settings.unsubscribeConfirm', defaultMessage: "Unsubscribe from this list? You won't see it anymore." }))) return;
         
         // Optimistic update
         setSubscriptions(prev => prev.filter(s => s.id !== listId));
@@ -106,7 +110,9 @@ export default function SettingsPage() {
     return (
         <PageContainer className="space-y-6">
             <header className="mb-2">
-                <p className="text-gray-500 dark:text-gray-400">Manage your app preferences.</p>
+                <p className="text-gray-500 dark:text-gray-400">
+                    <FormattedMessage id="settings.title" defaultMessage="Manage your app preferences." />
+                </p>
             </header>
 
             {user && <AccountSection user={user} onLogout={logout} />}
@@ -122,6 +128,8 @@ export default function SettingsPage() {
             />
 
             <NotificationsSection {...push} />
+
+            <LanguageSection />
 
             <AppearanceSection theme={theme} setTheme={setTheme} />
         </PageContainer>

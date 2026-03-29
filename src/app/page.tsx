@@ -4,6 +4,7 @@ import { AddItemForm } from '@/components/add-item-form';
 import { ShoppingList } from '@/components/shopping-list';
 import { useShoppingList } from '@/lib/hooks/use-shopping-list';
 import { PageContainer } from '@/components/page-container';
+import { FormattedMessage } from 'react-intl';
 
 export default function Home() {
   const { 
@@ -18,7 +19,11 @@ export default function Home() {
   } = useShoppingList();
 
   if (!isLoaded) {
-    return <div className="flex h-screen items-center justify-center text-gray-500">Loading...</div>;
+    return (
+      <div className="flex h-screen items-center justify-center text-gray-500">
+        <FormattedMessage id="app.loading" defaultMessage="Loading..." />
+      </div>
+    );
   }
 
   return (

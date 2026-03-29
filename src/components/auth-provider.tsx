@@ -7,12 +7,14 @@ interface AuthUser {
     email: string;
     name: string;
     picture: string;
+    language: 'en' | 'es' | 'ca';
 }
 
 interface AuthContextType {
     user: AuthUser | null;
     isLoading: boolean;
     logout: () => Promise<void>;
+    updateLanguage: (locale: 'en' | 'es' | 'ca') => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,8 +46,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.location.href = '/login';
     }, []);
 
+    const updateLanguage = useCallback(async (language: 'en' | 'es' | 'ca') => {
+        if (!user) return;
+        setUser(prev => prev ? { ...prev, language } : null);
+        try {
+            await fetch('/api/user/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ language }),
+            });
+        } catch (error) {
+            console.error('Failed to update language', error);
+        }
+    }, [user]);
+
     return (
-        <AuthContext.Provider value={{ user, isLoading, logout }}>
+        <AuthContext.Provider value={{ user, isLoading, logout, updateLanguage }}>
             {children}
         </AuthContext.Provider>
     );
