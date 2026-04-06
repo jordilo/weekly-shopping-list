@@ -40,6 +40,7 @@ export const viewport: Viewport = {
 import { Providers } from "@/components/providers";
 import { Header } from "@/components/header";
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { SWRegistration } from "@/components/sw-registration";
 
 export default function RootLayout({
   children,
@@ -52,6 +53,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans`}
       >
         <Providers>
+          <SWRegistration />
           <SpeedInsights />
           <NotificationManager />
           <Header />

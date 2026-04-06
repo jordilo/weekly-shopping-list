@@ -28,6 +28,7 @@ export async function GET(request: Request) {
         const items = await Item.find({ listId }).sort({ createdAt: -1 });
         const formattedItems = items.map((doc) => ({
             id: doc._id.toString(),
+            listId: doc.listId.toString(),
             name: doc.name,
             completed: doc.completed,
             category: doc.category,
@@ -98,6 +99,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             id: item._id.toString(),
+            listId: item.listId.toString(),
             name: item.name,
             completed: item.completed,
             category: item.category,
