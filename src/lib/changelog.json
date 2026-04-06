@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.3.0",
+    "date": "2026-04-06",
+    "changes": [
+      "Added User Guide page accessible from the burger menu",
+      "Full documentation covering all app features in English, Spanish, and Catalan"
+    ]
+  },
+  {
     "version": "0.2.0",
     "date": "2026-04-06",
     "changes": [

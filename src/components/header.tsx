@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Menu, X, Settings, LogOut, ChevronDown, RefreshCw, PlusCircle, ArrowLeft, History } from 'lucide-react';
+import { Menu, X, Settings, LogOut, ChevronDown, RefreshCw, PlusCircle, ArrowLeft, History, BookOpen } from 'lucide-react';
 import { useShoppingList } from '@/lib/hooks/use-shopping-list';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
@@ -69,6 +69,7 @@ export function Header() {
         '/lists': intl.formatMessage({ id: 'page.shoppingLists', defaultMessage: 'Shopping Lists' }),
         '/settings': intl.formatMessage({ id: 'page.settings', defaultMessage: 'Settings' }),
         '/changelog': intl.formatMessage({ id: 'changelog.title', defaultMessage: 'Changelog' }),
+        '/help': intl.formatMessage({ id: 'help.pageTitle', defaultMessage: 'User Guide' }),
     };
 
     let currentTitle = pageTitles[pathname] || '';
@@ -208,6 +209,15 @@ export function Header() {
                                     <span><FormattedMessage id="header.newWeek" defaultMessage="New Week" /></span>
                                 </button>
                             )}
+                            <Link
+                                href="/help"
+                                onClick={() => setShowMenu(false)}
+                                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                            >
+                                <BookOpen size={16} />
+                                <span><FormattedMessage id="header.help" defaultMessage="User Guide" /></span>
+                            </Link>
+
                             <Link
                                 href="/settings"
                                 onClick={() => setShowMenu(false)}
