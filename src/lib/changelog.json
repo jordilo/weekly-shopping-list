@@ -1,0 +1,28 @@
+[
+  {
+    "version": "0.3.0",
+    "date": "2026-04-06",
+    "changes": [
+      "Added User Guide page accessible from the burger menu",
+      "Full documentation covering all app features in English, Spanish, and Catalan"
+    ]
+  },
+  {
+    "version": "0.2.0",
+    "date": "2026-04-06",
+    "changes": [
+      "Implemented app versioning system",
+      "Added changelog page accessible from burger menu",
+      "Displayed app version in the sidebar"
+    ]
+  },
+  {
+    "version": "0.1.0",
+    "date": "2026-03-22",
+    "changes": [
+      "Initial release with basic shopping list functionality",
+      "PWA support with offline mode",
+      "i18n support (EN, ES, CA)"
+    ]
+  }
+]

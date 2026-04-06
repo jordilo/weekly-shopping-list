@@ -4,11 +4,12 @@ import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Menu, X, Settings, LogOut, ChevronDown, RefreshCw, PlusCircle, ArrowLeft } from 'lucide-react';
+import { Menu, X, Settings, LogOut, ChevronDown, RefreshCw, PlusCircle, ArrowLeft, History, BookOpen } from 'lucide-react';
 import { useShoppingList } from '@/lib/hooks/use-shopping-list';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
 import { useIntl, FormattedMessage } from 'react-intl';
+import { version } from '../../package.json';
 
 export function Header() {
     const { 
@@ -67,6 +68,8 @@ export function Header() {
         '/categories': intl.formatMessage({ id: 'page.manageCategories', defaultMessage: 'Manage Categories' }),
         '/lists': intl.formatMessage({ id: 'page.shoppingLists', defaultMessage: 'Shopping Lists' }),
         '/settings': intl.formatMessage({ id: 'page.settings', defaultMessage: 'Settings' }),
+        '/changelog': intl.formatMessage({ id: 'changelog.title', defaultMessage: 'Changelog' }),
+        '/help': intl.formatMessage({ id: 'help.pageTitle', defaultMessage: 'User Guide' }),
     };
 
     let currentTitle = pageTitles[pathname] || '';
@@ -207,6 +210,15 @@ export function Header() {
                                 </button>
                             )}
                             <Link
+                                href="/help"
+                                onClick={() => setShowMenu(false)}
+                                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                            >
+                                <BookOpen size={16} />
+                                <span><FormattedMessage id="header.help" defaultMessage="User Guide" /></span>
+                            </Link>
+
+                            <Link
                                 href="/settings"
                                 onClick={() => setShowMenu(false)}
                                 className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -214,6 +226,16 @@ export function Header() {
                                 <Settings size={16} />
                                 <span><FormattedMessage id="header.settings" defaultMessage="Settings" /></span>
                             </Link>
+
+                            <Link
+                                href="/changelog"
+                                onClick={() => setShowMenu(false)}
+                                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                            >
+                                <History size={16} />
+                                <span><FormattedMessage id="header.changelog" defaultMessage="Changelog" /></span>
+                            </Link>
+
                             <div className="h-px bg-gray-100 dark:bg-gray-800 my-1" />
                             <button
                                 onClick={handleLogout}
@@ -222,6 +244,10 @@ export function Header() {
                                 <LogOut size={16} />
                                 <span><FormattedMessage id="header.logout" defaultMessage="Logout" /></span>
                             </button>
+                            
+                            <div className="px-4 py-2 text-[10px] text-gray-400 dark:text-gray-500 text-right border-t border-gray-50 dark:border-gray-800/50 mt-1">
+                                <FormattedMessage id="changelog.version" defaultMessage="Version {version}" values={{ version }} />
+                            </div>
                         </div>
                     )}
                 </div>
