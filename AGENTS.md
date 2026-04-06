@@ -77,3 +77,11 @@ npm run lint
 - Refer to `ARCHITECTURE.md` for the system design.
 - Refer to `SCHEMA.md` for data structures.
 - Keep these files updated when making fundamental changes to the stack or schema.
+
+### 6. Versioning & Changelog
+- **App Version**: The application version is stored in `package.json`.
+- **Changelog**: All significant changes must be documented in `src/lib/changelog.json`.
+- **Requirement**: For every new feature, bug fix, or significant update:
+    1. Bump the `version` in `package.json` (e.g., from `0.1.0` to `0.1.1` or `0.2.0`).
+    2. Add a new entry to the top of the array in `src/lib/changelog.json` with the new version, current date, and a list of changes.
+- **UI**: The version is displayed in the burger menu, and the changelog is accessible at `/changelog`.

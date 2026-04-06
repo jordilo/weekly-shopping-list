@@ -59,3 +59,9 @@ We follow a **"Hero UI" (formerly NextUI)** aesthetic:
 - When adding a new API route, ensure it's structured as `src/app/api/.../route.ts`.
 - When adding a new component, put it in `src/components/` and use `"use client"` if it uses React hooks.
 - **NEVER** leave sensitive keys in the code; use `.env.local` and provide examples in `.env.example`.
+
+### 6. Versioning & Changelog (MANDATORY)
+For EVERY feature, bug fix, or significant update, you **MUST**:
+1.  **Bump Version**: Increment the `version` in `package.json` (e.g., `0.1.0` -> `0.1.1`).
+2.  **Update Changelog**: Add a new entry to the top of the array in `src/lib/changelog.json` with the new version, current date, and a concise list of changes.
+3.  **Verify UI**: Ensure the version number is correctly displayed in the burger menu (located in `src/components/header.tsx`).
