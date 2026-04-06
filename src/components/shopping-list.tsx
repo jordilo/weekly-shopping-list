@@ -32,6 +32,19 @@ export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateIt
     const { isOpen, onOpen, onOpenChange } = useDisclosure();
     const [selectedItem, setSelectedItem] = useState<ShoppingItem | null>(null);
 
+    // Keep selectedItem synchronized with the overarching items list.
+    // Handles the edge case where a 'temp-' ID upgrades to a real ID while the modal is open.
+    const freshItem = selectedItem ? items.find(i => 
+        i.id === selectedItem.id || 
+        (selectedItem.id.startsWith('temp-') && i.name === selectedItem.name)
+    ) : null;
+    
+    // We update the selection only if the ID changed or essential props updated
+    // Using render-time adjustment to avoid cascading renders.
+    if (freshItem && selectedItem && freshItem.id !== selectedItem.id) {
+        setSelectedItem(freshItem);
+    }
+
     const handleEditClick = (item: ShoppingItem) => {
         setSelectedItem(item);
         onOpen();
@@ -81,7 +94,7 @@ export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateIt
     }
 
     return (
-        <div className="space-y-6 w-full">
+        <div id="shopping-list-main" className="space-y-6 w-full">
             <div className="space-y-6">
                 {sortedCategories.map((category) => {
                     const groupItems = groupedItems[category];
@@ -124,7 +137,7 @@ export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateIt
             )}
 
             <ItemEditModal 
-                key={selectedItem?.id || 'none'}
+                key={selectedItem?.name || 'none'}
                 isOpen={isOpen} 
                 onOpenChange={(open) => {
                     onOpenChange();
@@ -251,101 +264,93 @@ function ItemEditModal({ isOpen, onOpenChange, item, categories, onUpdate, onDel
             }}
         >
             <ModalContent>
-                {(onClose) => !item ? null : (
+                {(onClose) => (
                     <>
-                        <ModalHeader className="flex flex-col gap-1">
-                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                                <FormattedMessage id="modal.editItemMode" defaultMessage="Edit Item" />
-                            </h2>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                <FormattedMessage id="modal.editItemDesc" defaultMessage="Update details for this product" />
-                            </p>
-                        </ModalHeader>
-                        <ModalBody>
-                            <div className="flex flex-col gap-8 w-full py-2">
-                                <div className="flex flex-col gap-2">
-                                    <label className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                                        <FormattedMessage id="modal.productName" defaultMessage="Product Name" />
-                                    </label>
-                                    <Input
-                                        value={item.name}
-                                        labelPlacement="outside"
-                                        label={intl.formatMessage({ id: 'modal.productName', defaultMessage: 'Product Name' })}
-                                        isReadOnly
-                                        variant="bordered"
-                                        description={intl.formatMessage({ id: 'modal.readonlyDesc', defaultMessage: 'Name cannot be changed here' })}
-                                        classNames={{
-                                            input: "text-gray-500 bg-gray-50/50 dark:bg-gray-800/50",
-                                            inputWrapper: "border-gray-200 dark:border-gray-700",
-                                        }}
-                                    />
-                                </div>
-                                
-                                <div className="flex flex-col gap-2">
-                                    <label htmlFor="quantity-input" className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                                        <FormattedMessage id="modal.quantity" defaultMessage="Quantity" />
-                                    </label>
-                                    <Input
-                                        id="quantity-input"
-                                        label={intl.formatMessage({ id: 'modal.quantity', defaultMessage: 'Quantity' })}
-                                        labelPlacement="outside"
-                                        placeholder={intl.formatMessage({ id: 'modal.quantityPlaceholder', defaultMessage: 'e.g., 2, 500g, 1 pack' })}
-                                        value={quantity}
-                                        onValueChange={setQuantity}
-                                        variant="bordered"
-                                        classNames={{
-                                            inputWrapper: "border-gray-200 dark:border-gray-700",
-                                        }}
-                                    />
-                                </div>
+                        {!item ? null : (
+                            <>
+                                <ModalHeader className="flex flex-col gap-1">
+                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                                        <FormattedMessage id="modal.editItemMode" defaultMessage="Edit Item" />
+                                    </h2>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        <FormattedMessage id="modal.editItemDesc" defaultMessage="Update details for this product" />
+                                    </p>
+                                </ModalHeader>
+                                <ModalBody>
+                                    <div className="flex flex-col gap-8 w-full py-2">
+                                        <Input
+                                            value={item.name}
+                                            labelPlacement="outside"
+                                            label={intl.formatMessage({ id: 'modal.productName', defaultMessage: 'Product Name' })}
+                                            isReadOnly
+                                            variant="bordered"
+                                            description={intl.formatMessage({ id: 'modal.readonlyDesc', defaultMessage: 'Name cannot be changed here' })}
+                                            classNames={{
+                                                label: "text-sm font-bold text-blue-600 dark:text-blue-400",
+                                                input: "text-gray-500 bg-gray-50/50 dark:bg-gray-800/50",
+                                                inputWrapper: "border-gray-200 dark:border-gray-700",
+                                            }}
+                                        />
 
-                                <div className="flex flex-col gap-2">
-                                    <label htmlFor="category-select" className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                                        <FormattedMessage id="modal.category" defaultMessage="Category" />
-                                    </label>
-                                    <Select
-                                        id="category-select"
-                                        label={intl.formatMessage({ id: 'modal.category', defaultMessage: 'Category' })}
-                                        labelPlacement="outside"
-                                        selectedKeys={[category]}
-                                        onSelectionChange={(keys) => setCategory(String(Array.from(keys)[0]))}
-                                        variant="bordered"
-                                        classNames={{
-                                            trigger: "border-gray-200 dark:border-gray-700 bg-transparent",
-                                        }}
-                                        popoverProps={{
-                                            classNames: {
-                                                content: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl opacity-100",
-                                            }
-                                        }}
+                                        <Input
+                                            id="quantity-input"
+                                            label={intl.formatMessage({ id: 'modal.quantity', defaultMessage: 'Quantity' })}
+                                            labelPlacement="outside"
+                                            placeholder={intl.formatMessage({ id: 'modal.quantityPlaceholder', defaultMessage: 'e.g., 2, 500g, 1 pack' })}
+                                            value={quantity}
+                                            onValueChange={setQuantity}
+                                            variant="bordered"
+                                            classNames={{
+                                                label: "text-sm font-bold text-gray-700 dark:text-gray-300",
+                                                inputWrapper: "border-gray-200 dark:border-gray-700",
+                                            }}
+                                        />
+
+                                        <Select
+                                            id="category-select"
+                                            label={intl.formatMessage({ id: 'modal.category', defaultMessage: 'Category' })}
+                                            labelPlacement="outside"
+                                            selectedKeys={[category]}
+                                            onSelectionChange={(keys) => setCategory(String(Array.from(keys)[0]))}
+                                            variant="bordered"
+                                            classNames={{
+                                                label: "text-sm font-bold text-gray-700 dark:text-gray-300",
+                                                trigger: "border-gray-200 dark:border-gray-700 bg-transparent",
+                                            }}
+                                            popoverProps={{
+                                                classNames: {
+                                                    content: "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl opacity-100",
+                                                }
+                                            }}
+                                        >
+                                            {uniqueOptions.map((cat) => (
+                                                <SelectItem key={cat} className="text-gray-900 dark:text-gray-100">
+                                                    {cat}
+                                                </SelectItem>
+                                            ))}
+                                        </Select>
+                                    </div>
+                                </ModalBody>
+                                <ModalFooter>
+                                    <Button
+                                        color="danger"
+                                        variant="flat"
+                                        onPress={() => handleDelete(onClose)}
+                                        startContent={<Trash2 size={18} />}
                                     >
-                                        {uniqueOptions.map((cat) => (
-                                            <SelectItem key={cat} className="text-gray-900 dark:text-gray-100">
-                                                {cat}
-                                            </SelectItem>
-                                        ))}
-                                    </Select>
-                                </div>
-                            </div>
-                        </ModalBody>
-                        <ModalFooter>
-                            <Button 
-                                color="danger" 
-                                variant="flat" 
-                                onPress={() => handleDelete(onClose)}
-                                startContent={<Trash2 size={18} />}
-                            >
-                                <FormattedMessage id="action.delete" defaultMessage="Delete" />
-                            </Button>
-                            <div className="flex gap-3">
-                                <Button variant="light" onPress={onClose}>
-                                    <FormattedMessage id="action.cancel" defaultMessage="Cancel" />
-                                </Button>
-                                <Button color="primary" onPress={() => handleSave(onClose)} className="font-bold">
-                                    <FormattedMessage id="action.saveChanges" defaultMessage="Save Changes" />
-                                </Button>
-                            </div>
-                        </ModalFooter>
+                                        <FormattedMessage id="action.delete" defaultMessage="Delete" />
+                                    </Button>
+                                    <div className="flex gap-3">
+                                        <Button variant="light" onPress={onClose}>
+                                            <FormattedMessage id="action.cancel" defaultMessage="Cancel" />
+                                        </Button>
+                                        <Button color="primary" onPress={() => handleSave(onClose)} className="font-bold">
+                                            <FormattedMessage id="action.saveChanges" defaultMessage="Save Changes" />
+                                        </Button>
+                                    </div>
+                                </ModalFooter>
+                            </>
+                        )}
                     </>
                 )}
             </ModalContent>

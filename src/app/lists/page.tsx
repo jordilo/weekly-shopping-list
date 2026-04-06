@@ -8,6 +8,7 @@ import { PageContainer } from '@/components/page-container';
 import Link from 'next/link';
 import { Input, Button, Card, CardHeader, CardBody, Divider } from '@heroui/react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { offlineDB } from '@/lib/offline-db';
 
 export default function ListsPage() {
     const intl = useIntl();
@@ -57,6 +58,9 @@ export default function ListsPage() {
     const handleSetDefault = async (id: string) => {
         await fetch(`/api/lists/${id}/default`, { method: 'PUT' });
         setDefaultListId(id);
+        localStorage.setItem('lastSelectedListId', id);
+        // Also update offlineDB meta for consistency
+        await offlineDB.setMeta('defaultListId', 'global', id);
     };
 
     const handleRename = async (id: string) => {

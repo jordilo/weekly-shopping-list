@@ -68,6 +68,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
         return NextResponse.json({
             id: updated._id.toString(),
+            listId: updated.listId.toString(),
             name: updated.name,
             completed: updated.completed,
             category: updated.category,
