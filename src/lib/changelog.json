@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.3.2",
+    "date": "2026-04-16",
+    "changes": [
+      "Fixed notifications not being sent to list owner when a subscriber adds items",
+      "Improved push notification reliability with proper ObjectId handling"
+    ]
+  },
+  {
     "version": "0.3.1",
     "date": "2026-04-16",
     "changes": [

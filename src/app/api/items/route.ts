@@ -4,6 +4,7 @@ import { Item, PushSubscription, ListMembership } from '@/lib/models';
 import { getSession } from '@/lib/auth';
 import { configureWebPush } from '@/lib/push';
 import webpush from 'web-push';
+import { Types } from 'mongoose';
 
 export async function GET(request: Request) {
     const session = await getSession();
@@ -65,12 +66,15 @@ export async function POST(request: Request) {
         // --- Trigger Push Notifications (exclude the current user) ---
         const isConfigured = configureWebPush();
         if (isConfigured) {
+            const currentUserId = new Types.ObjectId(session.userId);
+
             // Find all members of the list except the current user
-            const memberships = await ListMembership.find({ listId, userId: { $ne: session.userId } });
+            const memberships = await ListMembership.find({ listId, userId: { $ne: currentUserId } });
             const memberUserIds = memberships.map(m => m.userId);
+            console.log(`Push: listId=${listId}, currentUser=${session.userId}, otherMembers=${memberUserIds.length}`);
 
             const subscriptions = await PushSubscription.find({ userId: { $in: memberUserIds } });
-            console.log(`Push: found ${subscriptions.length} subscription(s) to notify (excluding current user).`);
+            console.log(`Push: found ${subscriptions.length} subscription(s) to notify.`);
 
             const payload = JSON.stringify({
                 title: 'New Item Added',
