@@ -40,10 +40,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
                 const currentUserId = new Types.ObjectId(session.userId);
                 const memberships = await ListMembership.find({ listId: existing.listId, userId: { $ne: currentUserId } });
                 const memberUserIds = memberships.map(m => m.userId);
-                console.log(`Push (re-add): listId=${existing.listId}, currentUser=${session.userId}, otherMembers=${memberUserIds.length}`);
 
                 const subscriptions = await PushSubscription.find({ userId: { $in: memberUserIds } });
-                console.log(`Push (re-add): found ${subscriptions.length} subscription(s) to notify.`);
 
                 const payload = JSON.stringify({
                     title: 'Item Added to List',
