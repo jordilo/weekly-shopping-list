@@ -79,7 +79,7 @@ export async function POST(request: Request) {
             const payload = JSON.stringify({
                 title: 'New Item Added',
                 body: `${item.name} was added to the list.`,
-                url: '/'
+                url: `/?listId=${listId}&highlight=${item._id.toString()}`
             });
 
             await Promise.all(subscriptions.map(sub => {

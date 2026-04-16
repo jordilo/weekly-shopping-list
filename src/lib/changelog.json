@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.3.3",
+    "date": "2026-04-16",
+    "changes": [
+      "Added direct link and item highlighting to push notifications"
+    ]
+  },
+  {
     "version": "0.3.2",
     "date": "2026-04-16",
     "changes": [

@@ -15,6 +15,7 @@ import {
 } from "@heroui/react";
 import { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { useSearchParams } from 'next/navigation';
 
 interface ShoppingListProps {
     items: ShoppingItem[];
@@ -31,6 +32,8 @@ const DEFAULT_CATEGORIES = [
 export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateItem }: ShoppingListProps) {
     const { isOpen, onOpen, onOpenChange } = useDisclosure();
     const [selectedItem, setSelectedItem] = useState<ShoppingItem | null>(null);
+    const searchParams = useSearchParams();
+    const highlightId = searchParams?.get('highlight');
 
     // Keep selectedItem synchronized with the overarching items list.
     // Handles the edge case where a 'temp-' ID upgrades to a real ID while the modal is open.
@@ -109,6 +112,7 @@ export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateIt
                                 <ShoppingListItem
                                     key={item.id}
                                     item={item}
+                                    isHighlighted={item.id === highlightId}
                                     onToggle={onToggle}
                                     onEditClick={() => handleEditClick(item)}
                                 />
@@ -128,6 +132,7 @@ export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateIt
                             <ShoppingListItem
                                 key={item.id}
                                 item={item}
+                                isHighlighted={item.id === highlightId}
                                 onToggle={onToggle}
                                 onEditClick={() => handleEditClick(item)}
                             />
@@ -154,10 +159,12 @@ export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateIt
 
 function ShoppingListItem({
     item,
+    isHighlighted,
     onToggle,
     onEditClick,
 }: {
     item: ShoppingItem;
+    isHighlighted?: boolean;
     onToggle: (id: string) => void;
     onEditClick: () => void;
 }) {
@@ -165,7 +172,7 @@ function ShoppingListItem({
     
     return (
         <div
-            className={`group flex items-center justify-between p-3 rounded-xl border transition-all gap-3 cursor-pointer ${item.completed
+            className={`group flex items-center justify-between p-3 rounded-xl border transition-all gap-3 cursor-pointer ${isHighlighted ? 'ring-2 ring-blue-500 border-blue-500 bg-blue-50 dark:bg-blue-900/20' : item.completed
                 ? 'bg-gray-50/50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-800'
                 : 'bg-white border-gray-200 shadow-sm hover:border-blue-400 dark:bg-gray-800 dark:border-gray-700 hover:shadow-md'
                 }`}
