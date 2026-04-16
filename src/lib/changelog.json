@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.3.1",
+    "date": "2026-04-16",
+    "changes": [
+      "Fixed push notifications not being delivered on smartphones",
+      "Fixed service worker not registering in production builds",
+      "Ensured push notifications are fully sent before API responses complete"
+    ]
+  },
+  {
     "version": "0.3.0",
     "date": "2026-04-06",
     "changes": [

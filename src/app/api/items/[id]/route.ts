@@ -46,7 +46,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
                     url: '/'
                 });
 
-                Promise.all(subscriptions.map(sub => {
+                await Promise.all(subscriptions.map(sub => {
                     return webpush.sendNotification(
                         {
                             endpoint: sub.endpoint,
