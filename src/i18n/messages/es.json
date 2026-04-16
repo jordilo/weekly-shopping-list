@@ -188,5 +188,7 @@
     "help.settingsTitle": "Ajustes",
     "help.settingsDesc": "Accesible desde el menú (☰) o la barra de navegación inferior. Cuenta: ver tu perfil y cerrar sesión. Idioma: cambiar entre inglés, español y catalán. Apariencia: elegir tema claro, oscuro o del sistema. Notificaciones: activar o desactivar alertas. Suscripciones: darse de baja de listas compartidas.",
     "help.defaultListTitle": "Lista predeterminada",
-    "help.defaultListDesc": "La lista predeterminada es la que se carga automáticamente al abrir la app. Establécela desde la pestaña Listas tocando el icono de estrella (⭐). Si tienes varias listas, puedes cambiar entre ellas en cualquier momento desde el encabezado."
+    "help.defaultListDesc": "La lista predeterminada es la que se carga automáticamente al abrir la app. Establécela desde la pestaña Listas tocando el icono de estrella (⭐). Si tienes varias listas, puedes cambiar entre ellas en cualquier momento desde el encabezado.",
+    "push.newItemTitle": "Nuevo artículo añadido",
+    "push.newItemBody": "{name} se ha añadido a la lista."
 }

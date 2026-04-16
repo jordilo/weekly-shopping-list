@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import { Item, PushSubscription, ListMembership } from '@/lib/models';
+import { Item, PushSubscription, ListMembership, User } from '@/lib/models';
 import { getSession } from '@/lib/auth';
+import { messages } from '@/i18n';
 import { configureWebPush } from '@/lib/push';
 import webpush from 'web-push';
 import { Types } from 'mongoose';
@@ -73,16 +74,26 @@ export async function POST(request: Request) {
             const memberUserIds = memberships.map(m => m.userId);
             console.log(`Push: listId=${listId}, currentUser=${session.userId}, otherMembers=${memberUserIds.length}`);
 
+            // Fetch users to know their language preference
+            const users = await User.find({ _id: { $in: memberUserIds } });
+            const userLangMap = new Map();
+            users.forEach(u => userLangMap.set(u._id.toString(), u.language || 'en'));
+
             const subscriptions = await PushSubscription.find({ userId: { $in: memberUserIds } });
             console.log(`Push: found ${subscriptions.length} subscription(s) to notify.`);
 
-            const payload = JSON.stringify({
-                title: 'New Item Added',
-                body: `${item.name} was added to the list.`,
-                url: `/?listId=${listId}&highlight=${item._id.toString()}`
-            });
-
             await Promise.all(subscriptions.map(sub => {
+                const lang = userLangMap.get(sub.userId.toString()) || 'en';
+                const msgBundle = messages[lang] || messages['en'];
+                const title = msgBundle['push.newItemTitle'] || 'New Item Added';
+                const body = (msgBundle['push.newItemBody'] || '{name} was added to the list.').replace('{name}', item.name);
+
+                const payload = JSON.stringify({
+                    title,
+                    body,
+                    url: `/?listId=${listId}&highlight=${item._id.toString()}`
+                });
+
                 return webpush.sendNotification(
                     {
                         endpoint: sub.endpoint,
