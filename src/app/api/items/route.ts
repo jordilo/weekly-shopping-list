@@ -78,7 +78,7 @@ export async function POST(request: Request) {
                 url: '/'
             });
 
-            Promise.all(subscriptions.map(sub => {
+            await Promise.all(subscriptions.map(sub => {
                 return webpush.sendNotification(
                     {
                         endpoint: sub.endpoint,
