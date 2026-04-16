@@ -4,6 +4,7 @@ import { Item, PushSubscription, ListMembership } from '@/lib/models';
 import { getSession } from '@/lib/auth';
 import { configureWebPush } from '@/lib/push';
 import webpush from 'web-push';
+import { Types } from 'mongoose';
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const session = await getSession();
@@ -36,8 +37,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         if (isReAdd) {
             const isConfigured = configureWebPush();
             if (isConfigured) {
-                const memberships = await ListMembership.find({ listId: existing.listId, userId: { $ne: session.userId } });
+                const currentUserId = new Types.ObjectId(session.userId);
+                const memberships = await ListMembership.find({ listId: existing.listId, userId: { $ne: currentUserId } });
                 const memberUserIds = memberships.map(m => m.userId);
+
                 const subscriptions = await PushSubscription.find({ userId: { $in: memberUserIds } });
 
                 const payload = JSON.stringify({

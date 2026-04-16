@@ -188,5 +188,7 @@
     "help.settingsTitle": "Ajustos",
     "help.settingsDesc": "Accessible des del menú (☰) o la barra de navegació inferior. Compte: veure el teu perfil i tancar sessió. Idioma: canviar entre anglès, castellà i català. Aparença: triar tema clar, fosc o del sistema. Notificacions: activar o desactivar alertes. Subscripcions: donar-se de baixa de llistes compartides.",
     "help.defaultListTitle": "Llista predeterminada",
-    "help.defaultListDesc": "La llista predeterminada és la que es carrega automàticament en obrir l'app. Estableix-la des de la pestanya Llistes tocant la icona d'estrella (⭐). Si tens diverses llistes, pots canviar entre elles en qualsevol moment des de la capçalera."
+    "help.defaultListDesc": "La llista predeterminada és la que es carrega automàticament en obrir l'app. Estableix-la des de la pestanya Llistes tocant la icona d'estrella (⭐). Si tens diverses llistes, pots canviar entre elles en qualsevol moment des de la capçalera.",
+    "push.newItemTitle": "Nou article afegit",
+    "push.newItemBody": "{name} s'ha afegit a la llista."
 }

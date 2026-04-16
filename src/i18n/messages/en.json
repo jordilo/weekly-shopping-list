@@ -188,5 +188,7 @@
     "help.settingsTitle": "Settings",
     "help.settingsDesc": "Accessible from the burger menu or the bottom navigation bar. Account: view your profile and sign out. Language: switch between English, Spanish, and Catalan. Appearance: choose Light, Dark, or System theme. Notifications: enable or disable push alerts. Subscriptions: unsubscribe from lists shared with you.",
     "help.defaultListTitle": "Default List",
-    "help.defaultListDesc": "Your default list is the one that loads automatically when you open the app. Set it from the Lists tab by tapping the star (⭐) icon. If you have multiple lists, you can switch between them at any time using the header dropdown."
+    "help.defaultListDesc": "Your default list is the one that loads automatically when you open the app. Set it from the Lists tab by tapping the star (⭐) icon. If you have multiple lists, you can switch between them at any time using the header dropdown.",
+    "push.newItemTitle": "New Item Added",
+    "push.newItemBody": "{name} was added to the list."
 }
