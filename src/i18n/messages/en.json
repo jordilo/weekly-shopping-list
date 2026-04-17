@@ -65,6 +65,8 @@
     "action.signInWithGoogle": "Sign in with Google",
     "action.add": "Add",
     "action.saveChanges": "Save Changes",
+    "action.clearCompletedConfirm": "Clear all completed items?",
+    "action.clearCompleted": "Clean Done",
     "action.editItem": "Edit Item",
     "action.deleteItem": "Delete Item",
     "action.invite": "Invite",

@@ -69,4 +69,38 @@ test.describe('Shopping Lists Management', () => {
         await page.goto('/');
         await expect(page.locator('button#list-selector')).toContainText(uniqueListName);
     });
+
+    test('newly created list appears in header dropdown immediately', async ({ page }) => {
+        await page.goto('/lists');
+
+        const uniqueListName = `Header Test ${Date.now()}`;
+        await page.fill('[data-testid="new-list-input"]', uniqueListName);
+        await page.click('button:has-text("Create")');
+
+        await expect(page.locator('text=' + uniqueListName)).toBeVisible();
+
+        // Go back to Home and open the list selector dropdown
+        await page.goto('/');
+        await page.waitForTimeout(500); // Allow time for client to mount lists
+        await page.click('button#list-selector');
+        
+        await expect(page.locator('.absolute.top-full')).toContainText(uniqueListName);
+    });
+
+    test('can navigate to a list directly from the lists page', async ({ page }) => {
+        await page.goto('/lists');
+
+        const uniqueListName = `Nav Test ${Date.now()}`;
+        await page.fill('[data-testid="new-list-input"]', uniqueListName);
+        await page.click('button:has-text("Create")');
+
+        await expect(page.locator('text=' + uniqueListName)).toBeVisible();
+
+        // Click on the list's name link
+        await page.click(`a:has-text("${uniqueListName}")`);
+
+        // Should navigate to Home with query param and set it as active
+        await expect(page).toHaveURL(/.*listId=.+/);
+        await expect(page.locator('button#list-selector')).toContainText(uniqueListName);
+    });
 });

@@ -1,5 +1,20 @@
 [
   {
+    "version": "0.3.5",
+    "date": "2026-04-17",
+    "changes": [
+      "Added button to clean all items marked as done in a list"
+    ]
+  },
+  {
+    "version": "0.3.4",
+    "date": "2026-04-17",
+    "changes": [
+      "Fixed new lists not immediately appearing in the header menu",
+      "Added direct navigation links to individual lists from the Lists page"
+    ]
+  },
+  {
     "version": "0.3.3",
     "date": "2026-04-16",
     "changes": [

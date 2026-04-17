@@ -23,17 +23,19 @@ interface ShoppingListProps {
     onToggle: (id: string) => void;
     onDelete: (id: string) => void;
     onUpdateItem: (id: string, updates: Partial<ShoppingItem>) => void;
+    onClearCompleted: () => void;
 }
 
 const DEFAULT_CATEGORIES = [
     'Produce', 'Dairy', 'Meat', 'Bakery', 'Pantry', 'Frozen', 'Beverages', 'Household', 'Other'
 ];
 
-export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateItem }: ShoppingListProps) {
+export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateItem, onClearCompleted }: ShoppingListProps) {
     const { isOpen, onOpen, onOpenChange } = useDisclosure();
     const [selectedItem, setSelectedItem] = useState<ShoppingItem | null>(null);
     const searchParams = useSearchParams();
     const highlightId = searchParams?.get('highlight');
+    const intl = useIntl();
 
     // Keep selectedItem synchronized with the overarching items list.
     // Handles the edge case where a 'temp-' ID upgrades to a real ID while the modal is open.
@@ -123,9 +125,22 @@ export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateIt
             </div>
 
             {completedItems.length > 0 && (
-                <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider pt-4 pb-2 border-b dark:border-gray-800">
-                        <FormattedMessage id="list.completedTitle" defaultMessage="Completed ({count})" values={{ count: completedItems.length }} />
+                <div className="space-y-2" data-testid="completed-items-section">
+                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider pt-4 pb-2 border-b dark:border-gray-800 flex justify-between items-center">
+                        <span><FormattedMessage id="list.completedTitle" defaultMessage="Completed ({count})" values={{ count: completedItems.length }} /></span>
+                        <Button
+                            size="sm"
+                            variant="light"
+                            color="danger"
+                            onPress={() => {
+                                if (window.confirm(intl.formatMessage({ id: 'action.clearCompletedConfirm', defaultMessage: 'Clear all completed items?' }))) {
+                                    onClearCompleted();
+                                }
+                            }}
+                            startContent={<Trash2 size={14} />}
+                        >
+                            <FormattedMessage id="action.clearCompleted" defaultMessage="Clean Done" />
+                        </Button>
                     </h3>
                     <div className="space-y-2 opacity-60 hover:opacity-100 transition-opacity">
                         {completedItems.map((item) => (

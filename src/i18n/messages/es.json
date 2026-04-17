@@ -65,6 +65,8 @@
     "action.signInWithGoogle": "Iniciar sesión con Google",
     "action.add": "Añadir",
     "action.saveChanges": "Guardar Cambios",
+    "action.clearCompletedConfirm": "¿Eliminar todos los elementos completados?",
+    "action.clearCompleted": "Limpiar completados",
     "action.editItem": "Editar Artículo",
     "action.deleteItem": "Eliminar Artículo",
     "action.invite": "Invitar",
