@@ -85,3 +85,6 @@ npm run lint
     1. Bump the `version` in `package.json` (e.g., from `0.1.0` to `0.1.1` or `0.2.0`).
     2. Add a new entry to the top of the array in `src/lib/changelog.json` with the new version, current date, and a list of changes.
 - **UI**: The version is displayed in the burger menu, and the changelog is accessible at `/changelog`.
+
+### 7. Translations
+Load agent on file .github/agents/translation.md
