@@ -125,7 +125,7 @@ const apiAdapter: StorageAdapter = {
         await fetch(`/api/items?listId=${listId}`, { method: 'DELETE' });
     },
     getLists: async () => {
-        const res = await fetch('/api/lists');
+        const res = await fetch(`/api/lists?_t=${Date.now()}`);
         if (!res.ok) return [];
         return res.json();
     },
@@ -420,6 +420,15 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
         }
         init();
     }, [adapter, pathname, router, searchParams]);
+
+    // Sync active list with URL parameter when it changes via navigation
+    useEffect(() => {
+        const urlListId = searchParams.get('listId');
+        if (urlListId && urlListId !== activeListId && lists.some(l => l.id === urlListId)) {
+            setActiveListIdState(urlListId);
+            try { localStorage.setItem(LAST_LIST_KEY, urlListId); } catch {}
+        }
+    }, [searchParams, activeListId, lists]);
 
     // Refresh items when active list changes
     useEffect(() => {

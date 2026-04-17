@@ -269,16 +269,16 @@ function ListRow({
                     </Button>
                 </form>
             ) : (
-                <div className="flex-1 min-w-0">
+                <Link href={`/?listId=${list.id}`} className="flex-1 min-w-0 block hover:opacity-80 transition-opacity">
                     <span className="text-sm font-semibold text-gray-900 dark:text-white truncate block">
                         {list.name}
                     </span>
                     {list.role === 'member' && (
-                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">
+                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider block mt-0.5">
                             <FormattedMessage id="lists.sharedList" defaultMessage="Shared list" />
                         </span>
                     )}
-                </div>
+                </Link>
             )}
 
             {/* Actions */}
