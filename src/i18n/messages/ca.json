@@ -65,6 +65,8 @@
     "action.signInWithGoogle": "Inicia sessió amb Google",
     "action.add": "Afegir",
     "action.saveChanges": "Desar Canvis",
+    "action.clearCompletedConfirm": "Eliminar tots els elements completats?",
+    "action.clearCompleted": "Netejar completats",
     "action.editItem": "Editar Article",
     "action.deleteItem": "Eliminar Article",
     "action.invite": "Convidar",

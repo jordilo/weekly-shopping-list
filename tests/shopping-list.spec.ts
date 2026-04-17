@@ -246,4 +246,43 @@ test.describe('Weekly Shopping List', () => {
         // 4. Item SHOULD be visible now
         await expect(page.getByText(uniqueName)).toBeVisible();
     });
+
+    test('should clean all completed items', async ({ page }) => {
+        const item1 = `Active-${Date.now()}`;
+        const item2 = `Done1-${Date.now()}`;
+        const item3 = `Done2-${Date.now()}`;
+
+        // Add 3 items
+        const input = page.getByPlaceholder('Add item (e.g., Milk)');
+        const addButton = page.getByRole('button', { name: 'Add' });
+        
+        await input.fill(item1);
+        await addButton.click();
+        await input.fill(item2);
+        await addButton.click();
+        await input.fill(item3);
+        await addButton.click();
+
+        // Mark 2 items as complete
+        const row2 = page.locator('.group', { hasText: item2 });
+        await row2.locator('button').filter({ has: page.locator('svg') }).click();
+        
+        const row3 = page.locator('.group', { hasText: item3 });
+        await row3.locator('button').filter({ has: page.locator('svg') }).click();
+
+        // Check if completed section acts exist
+        await expect(page.getByTestId('completed-items-section')).toBeVisible();
+
+        // Click clean done button
+        page.on('dialog', dialog => dialog.accept());
+        await page.getByRole('button', { name: 'Clean Done' }).click();
+
+        // Verify done items are removed but active one is still there
+        await expect(page.getByText(item2)).not.toBeVisible();
+        await expect(page.getByText(item3)).not.toBeVisible();
+        await expect(page.getByText(item1)).toBeVisible();
+        
+        // Ensure the completed section disappears
+        await expect(page.getByTestId('completed-items-section')).not.toBeVisible();
+    });
 });

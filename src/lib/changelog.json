@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.3.5",
+    "date": "2026-04-17",
+    "changes": [
+      "Added button to clean all items marked as done in a list"
+    ]
+  },
+  {
     "version": "0.3.4",
     "date": "2026-04-17",
     "changes": [

@@ -15,6 +15,7 @@ export default function Home() {
     toggleItem, 
     deleteItem,
     updateItem,
+    clearCompleted,
     isLoaded,
   } = useShoppingList();
 
@@ -38,6 +39,7 @@ export default function Home() {
             onToggle={toggleItem}
             onDelete={deleteItem}
             onUpdateItem={updateItem}
+            onClearCompleted={clearCompleted}
           />
         </div>
       </div>
