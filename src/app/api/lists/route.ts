@@ -25,12 +25,14 @@ export async function GET() {
 
     await dbConnect();
 
-    // Find all lists where user is a member
-    const memberships = await ListMembership.find({ userId: session.userId }).lean() as unknown as LeanMembership[];
+    // Find all lists where user is a member, sorted by their custom order
+    const memberships = await ListMembership.find({ userId: session.userId })
+        .sort({ order: 1, joinedAt: -1 })
+        .lean() as unknown as LeanMembership[];
+    
     const listIds = memberships.map(m => m.listId);
 
     const lists = await ShoppingList.find({ _id: { $in: listIds } })
-        .sort({ createdAt: -1 })
         .lean() as unknown as LeanList[];
 
     // Get pending counts for all lists
@@ -40,18 +42,23 @@ export async function GET() {
         { $group: { _id: '$listId', count: { $sum: 1 } } }
     ]);
 
-    const formatted = lists.map(list => {
-        const membership = memberships.find(m => m.listId.toString() === list._id.toString());
+    // Format and preserve the order from memberships
+    const formatted = memberships.map(membership => {
+        const list = lists.find(l => l._id.toString() === membership.listId.toString());
+        if (!list) return null;
+
         const countObj = counts.find(c => c._id.toString() === list._id.toString());
         return {
             id: list._id.toString(),
             name: list.name,
-            role: membership?.role || 'member',
+            role: membership.role || 'member',
             ownerId: list.ownerId.toString(),
             createdAt: list.createdAt,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            order: (membership as any).order || 0,
             pendingCount: countObj ? countObj.count : 0,
         };
-    });
+    }).filter(Boolean);
 
     return NextResponse.json(formatted);
 }

@@ -38,6 +38,8 @@ interface StorageAdapter {
 
     getLists: () => Promise<ShoppingListInfo[]>;
     getDefaultListId: () => Promise<string | null>;
+    reorderLists: (listIds: string[]) => Promise<void>;
+    reorderItems: (listId: string, itemIds: string[]) => Promise<void>;
 }
 
 // --- API Implementation ---
@@ -135,6 +137,22 @@ const apiAdapter: StorageAdapter = {
         const data = await res.json();
         return data.defaultListId || null;
     },
+    reorderLists: async (listIds) => {
+        const res = await fetch('/api/lists/reorder', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ listIds }),
+        });
+        if (!res.ok) throw new Error('Failed to reorder lists');
+    },
+    reorderItems: async (listId, itemIds) => {
+        const res = await fetch('/api/items/reorder', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ listId, itemIds }),
+        });
+        if (!res.ok) throw new Error('Failed to reorder items');
+    },
 }
 
 interface ShoppingListContextType {
@@ -160,6 +178,8 @@ interface ShoppingListContextType {
     deleteHistoryItem: (name: string) => Promise<void>;
     addHistoryItem: (name: string, category: string) => Promise<void>;
     renameHistoryItem: (oldName: string, newName: string, category: string) => Promise<void>;
+    reorderLists: (newOrderedLists: ShoppingListInfo[]) => Promise<void>;
+    reorderItems: (newOrderedItems: ShoppingItem[]) => Promise<void>;
     isLoaded: boolean;
     isOnline: boolean;
 }
@@ -184,6 +204,8 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const initRef = useRef(false);
     const pendingDeletesRef = useRef<Set<string>>(new Set());
+    // Timestamp of last reorder operation — protects local order from being overwritten by stale server data
+    const reorderLockRef = useRef<number>(0);
 
     const adapter = apiAdapter;
 
@@ -272,6 +294,33 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
                 
                 // FILTER: Only keep updatedLoaded that aren't in pendingDeletes
                 const filteredLoaded = updatedLoaded.filter(i => !pendingDeletesRef.current.has(i.id));
+
+                // If a reorder happened recently, preserve local array order
+                // but merge in any updated fields from the server
+                if (reorderLockRef.current > 0 && Date.now() - reorderLockRef.current < 10_000) {
+                    const serverMap = new Map(filteredLoaded.map(i => [i.id, i]));
+                    const merged: ShoppingItem[] = [];
+                    // Keep items in their local order, updating fields from server
+                    for (const localItem of prev) {
+                        if (localItem.id.startsWith('temp-')) {
+                            // Keep temp items if not yet on server
+                            if (!filteredLoaded.some(l => l.name === localItem.name)) {
+                                merged.push(localItem);
+                            }
+                            continue;
+                        }
+                        const serverVersion = serverMap.get(localItem.id);
+                        if (serverVersion) {
+                            merged.push(serverVersion);
+                            serverMap.delete(localItem.id);
+                        }
+                    }
+                    // Add any new items from server that weren't in local state
+                    for (const newItem of serverMap.values()) {
+                        merged.push(newItem);
+                    }
+                    return merged;
+                }
 
                 const merged = [...filteredLoaded];
                 for (const temp of tempItems) {
@@ -481,6 +530,30 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
             try {
                 const freshItems = await adapter.getItems(activeListId);
                 setItems(prev => {
+                    // If a reorder happened recently, preserve local order
+                    // but merge updated fields from server
+                    if (reorderLockRef.current > 0 && Date.now() - reorderLockRef.current < 10_000) {
+                        const serverMap = new Map(freshItems.map((i: ShoppingItem) => [i.id, i]));
+                        const merged: ShoppingItem[] = [];
+                        for (const localItem of prev) {
+                            const serverVersion = serverMap.get(localItem.id);
+                            if (serverVersion) {
+                                // Keep local array position, but use server data for non-order fields
+                                merged.push(serverVersion);
+                                serverMap.delete(localItem.id);
+                            } else if (localItem.id.startsWith('temp-')) {
+                                merged.push(localItem);
+                            }
+                            // If item was deleted on server, drop it
+                        }
+                        // Add any brand new server items
+                        for (const newItem of serverMap.values()) {
+                            merged.push(newItem);
+                        }
+                        offlineDB.saveItems(merged);
+                        return merged;
+                    }
+
                     const prevJson = JSON.stringify(prev.map(i => i.id + i.completed + i.name + i.quantity + i.category));
                     const nextJson = JSON.stringify(freshItems.map((i: ShoppingItem) => i.id + i.completed + i.name + i.quantity + i.category));
                     if (prevJson !== nextJson) {
@@ -746,6 +819,66 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
             refresh();
         }
     }, [adapter, refresh]);
+    
+    const reorderLists = useCallback(async (newOrderedLists: ShoppingListInfo[]) => {
+        // Optimistic update
+        setLists(newOrderedLists);
+        try {
+            await adapter.reorderLists(newOrderedLists.map(l => l.id));
+        } catch (error) {
+            console.error('Failed to save list order', error);
+            refreshLists(); // Rollback
+        }
+    }, [adapter, refreshLists]);
+
+    const reorderItems = useCallback(async (newOrderedItems: ShoppingItem[]) => {
+        if (!activeListId) return;
+        
+        // Lock to prevent polling from overwriting this reorder
+        reorderLockRef.current = Date.now();
+
+        // Reorder the items array: find the positions where the reordered items
+        // currently live, then place newOrderedItems into those positions.
+        setItems(prev => {
+            const reorderedIds = new Set(newOrderedItems.map(i => i.id));
+            // Collect the array indices where reordered items currently are
+            const positions: number[] = [];
+            prev.forEach((item, idx) => {
+                if (reorderedIds.has(item.id)) {
+                    positions.push(idx);
+                }
+            });
+            // Place newOrderedItems into those positions
+            const result = [...prev];
+            positions.forEach((pos, i) => {
+                result[pos] = { ...newOrderedItems[i], order: i };
+            });
+            return result;
+        });
+
+        try {
+            // Filter out items that haven't been saved to the server yet (temp IDs)
+            // The server will crash if it receives a non-ObjectId string.
+            const persistentIds = newOrderedItems
+                .filter(i => !i.id.startsWith('temp-'))
+                .map(i => i.id);
+            
+            if (persistentIds.length > 0) {
+                await adapter.reorderItems(activeListId, persistentIds);
+            }
+            
+            // Keep the lock a bit longer to survive the next poll cycle
+            setTimeout(() => {
+                if (reorderLockRef.current > 0 && Date.now() - reorderLockRef.current >= 5_000) {
+                    reorderLockRef.current = 0;
+                }
+            }, 5_000);
+        } catch (error) {
+            console.error('Failed to save item order', error);
+            reorderLockRef.current = 0;
+            refresh(); // Rollback
+        }
+    }, [adapter, activeListId, refresh]);
 
     const value = {
         items,
@@ -770,6 +903,8 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
         deleteHistoryItem,
         addHistoryItem,
         renameHistoryItem,
+        reorderLists,
+        reorderItems,
         isLoaded,
         isOnline
     }

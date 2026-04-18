@@ -1,4 +1,13 @@
-[
+  {
+    "version": "0.4.0",
+    "date": "2026-04-17",
+    "changes": [
+      "Migrate drag-and-drop reordering to dnd-kit for improved stability and accessibility",
+      "Implement robust reordering for shopping items within categories",
+      "Implement reordering for shopping lists in the Lists page",
+      "Add automated E2E tests for verification of reordering functionality"
+    ]
+  },
   {
     "version": "0.3.5",
     "date": "2026-04-17",

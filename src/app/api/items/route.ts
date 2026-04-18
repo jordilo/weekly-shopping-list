@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     }
 
     try {
-        const items = await Item.find({ listId }).sort({ createdAt: -1 });
+        const items = await Item.find({ listId }).sort({ order: 1, createdAt: -1 });
         const formattedItems = items.map((doc) => ({
             id: doc._id.toString(),
             listId: doc.listId.toString(),
@@ -35,6 +35,8 @@ export async function GET(request: Request) {
             completed: doc.completed,
             category: doc.category,
             quantity: doc.quantity || '1',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            order: (doc as any).order || 0,
             createdAt: doc.createdAt,
         }));
         return NextResponse.json(formattedItems);

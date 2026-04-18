@@ -26,6 +26,7 @@ const ListMembershipSchema = new Schema({
     listId: { type: Schema.Types.ObjectId, ref: 'ShoppingList', required: true },
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     role: { type: String, enum: ['owner', 'member'], default: 'member' },
+    order: { type: Number, default: 0 },
     joinedAt: { type: Number, default: () => Date.now() },
 });
 
@@ -53,6 +54,7 @@ const ItemSchema = new Schema({
     category: String,
     quantity: { type: String, default: '1' },
     listId: { type: Schema.Types.ObjectId, ref: 'ShoppingList', required: true },
+    order: { type: Number, default: 0 },
     createdAt: { type: Number, default: () => Date.now() },
 });
 

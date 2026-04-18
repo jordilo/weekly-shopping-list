@@ -3,7 +3,24 @@
 import { useShoppingList, ShoppingListInfo } from '@/lib/hooks/use-shopping-list';
 import { useAuth } from '@/components/auth-provider';
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Star, Settings, Pencil, X, Check } from 'lucide-react';
+import { Plus, Trash2, Star, Settings, Pencil, X, Check, GripVertical } from 'lucide-react';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+    useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { PageContainer } from '@/components/page-container';
 import Link from 'next/link';
 import { Input, Button, Card, CardHeader, CardBody, Divider } from '@heroui/react';
@@ -12,13 +29,23 @@ import { offlineDB } from '@/lib/offline-db';
 
 export default function ListsPage() {
     const intl = useIntl();
-    const { lists, refreshLists, activeListId } = useShoppingList();
+    const { lists, refreshLists, activeListId, reorderLists } = useShoppingList();
     const { user } = useAuth();
     const [newListName, setNewListName] = useState('');
     const [creating, setCreating] = useState(false);
     const [defaultListId, setDefaultListId] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     // Fetch default list id
     useEffect(() => {
@@ -74,8 +101,19 @@ export default function ListsPage() {
         await refreshLists();
     };
 
-    const ownedLists = lists.filter((l: ShoppingListInfo) => l.role === 'owner');
-    const subscribedLists = lists.filter((l: ShoppingListInfo) => l.role === 'member');
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = lists.findIndex((list) => list.id === active.id);
+        const newIndex = lists.findIndex((list) => list.id === over.id);
+
+        if (oldIndex !== -1 && newIndex !== -1) {
+            const reordered = arrayMove(lists, oldIndex, newIndex);
+            reorderLists(reordered);
+        }
+    };
 
     return (
         <PageContainer className="space-y-8 pb-32">
@@ -119,82 +157,79 @@ export default function ListsPage() {
                 </CardHeader>
                 <Divider />
                 <CardBody className="p-0">
-                    <div className="p-6 border-b dark:border-gray-800 bg-gray-50/30 dark:bg-gray-900/30">
-                        <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
-                            <FormattedMessage id="lists.myLists" defaultMessage="My Lists" />
-                        </h2>
-                    </div>
-                    <div className="flex flex-col">
-                        {ownedLists.length === 0 ? (
-                            <div className="text-center py-12 text-gray-500">
-                                <p className="font-medium text-lg">
-                                    <FormattedMessage id="lists.noLists" defaultMessage="No lists yet." />
-                                </p>
-                                <p className="text-sm mt-1">
-                                    <FormattedMessage id="lists.createHelp" defaultMessage="Create one above to start shopping." />
-                                </p>
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <SortableContext
+                            items={lists.map(l => l.id)}
+                            strategy={verticalListSortingStrategy}
+                        >
+                            <div className="flex flex-col">
+                                {lists.length === 0 ? (
+                                    <div className="text-center py-12 text-gray-500">
+                                        <p className="font-medium text-lg">
+                                            <FormattedMessage id="lists.noLists" defaultMessage="No lists yet." />
+                                        </p>
+                                        <p className="text-sm mt-1">
+                                            <FormattedMessage id="lists.createHelp" defaultMessage="Create one above to start shopping." />
+                                        </p>
+                                    </div>
+                                ) : (
+                                    lists.map((list: ShoppingListInfo, index: number) => (
+                                        <SortableListRow
+                                            key={list.id}
+                                            id={list.id}
+                                            list={list}
+                                            isDefault={defaultListId === list.id}
+                                            isActive={activeListId === list.id}
+                                            isEditing={editingId === list.id}
+                                            editName={editName}
+                                            onSetDefault={() => handleSetDefault(list.id)}
+                                            onDelete={() => handleDelete(list.id)}
+                                            onStartEdit={() => { setEditingId(list.id); setEditName(list.name); }}
+                                            onCancelEdit={() => setEditingId(null)}
+                                            onSaveEdit={() => handleRename(list.id)}
+                                            onEditNameChange={setEditName}
+                                            isLast={index === lists.length - 1}
+                                        />
+                                    ))
+                                )}
                             </div>
-                        ) : (
-                            ownedLists.map((list: ShoppingListInfo, index: number) => (
-                                <div key={list.id}>
-                                    <ListRow
-                                        list={list}
-                                        isDefault={defaultListId === list.id}
-                                        isActive={activeListId === list.id}
-                                        isEditing={editingId === list.id}
-                                        editName={editName}
-                                        currentUserEmail={user?.email || ''}
-                                        onSetDefault={() => handleSetDefault(list.id)}
-                                        onDelete={() => handleDelete(list.id)}
-                                        onStartEdit={() => { setEditingId(list.id); setEditName(list.name); }}
-                                        onCancelEdit={() => setEditingId(null)}
-                                        onSaveEdit={() => handleRename(list.id)}
-                                        onEditNameChange={setEditName}
-                                    />
-                                    {index < ownedLists.length - 1 && <Divider />}
-                                </div>
-                            ))
-                        )}
-                    </div>
+                        </SortableContext>
+                    </DndContext>
                 </CardBody>
             </Card>
-
-            {/* Subscribed Lists */}
-            {subscribedLists.length > 0 && (
-                <Card className="border border-gray-200 dark:border-gray-800 shadow-sm mt-8" data-testid="shared-lists-card">
-                    <CardHeader className="p-6 bg-gray-50/50 dark:bg-gray-900/50">
-                        <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
-                            <FormattedMessage id="lists.sharedWithMe" defaultMessage="Shared with Me" />
-                        </h2>
-                    </CardHeader>
-                    <Divider />
-                    <CardBody className="p-0">
-                        <div className="flex flex-col">
-                            {subscribedLists.map((list: ShoppingListInfo, index: number) => (
-                                <div key={list.id}>
-                                    <ListRow
-                                        list={list}
-                                        isDefault={defaultListId === list.id}
-                                        isActive={activeListId === list.id}
-                                        isEditing={false}
-                                        editName=""
-                                        currentUserEmail={user?.email || ''}
-                                        onSetDefault={() => handleSetDefault(list.id)}
-                                        onDelete={undefined}
-                                        onStartEdit={undefined}
-                                        onCancelEdit={undefined}
-                                        onSaveEdit={undefined}
-                                        onEditNameChange={undefined}
-                                    />
-                                    {index < subscribedLists.length - 1 && <Divider />}
-                                </div>
-                            ))}
-                        </div>
-                    </CardBody>
-                </Card>
-            )}
-
         </PageContainer>
+    );
+}
+
+function SortableListRow({ id, isLast, ...props }: { id: string; isLast: boolean } & ListRowProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 50 : 0,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style}>
+            <ListRow
+                {...props}
+                dragHandleProps={{ ...attributes, ...listeners }}
+            />
+            {!isLast && <Divider />}
+        </div>
     );
 }
 
@@ -204,23 +239,37 @@ interface ListRowProps {
     isActive: boolean;
     isEditing: boolean;
     editName: string;
-    currentUserEmail: string;
     onSetDefault: () => void;
     onDelete?: () => void;
     onStartEdit?: () => void;
     onCancelEdit?: () => void;
     onSaveEdit?: () => void;
     onEditNameChange?: (name: string) => void;
+    dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }
 
 function ListRow({
     list, isDefault, isActive, isEditing, editName,
-    onSetDefault, onDelete, onStartEdit, onCancelEdit, onSaveEdit, onEditNameChange
+    onSetDefault, onDelete, onStartEdit, onCancelEdit, onSaveEdit, onEditNameChange,
+    dragHandleProps
 }: ListRowProps) {
     const intl = useIntl();
+
     return (
         <div className={`flex items-center gap-3 p-4 px-6 transition-colors ${isActive ? 'bg-blue-50 dark:bg-blue-950/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
             }`}>
+            {/* Drag Handle */}
+            {!isEditing && (
+                <div
+                    className="cursor-grab active:cursor-grabbing text-gray-400 p-1 -ml-2 hover:text-blue-500 transition-colors"
+                    {...dragHandleProps}
+                    data-testid={`drag-handle-${list.id}`}
+                    style={{ touchAction: 'none' }}
+                >
+                    <GripVertical size={20} />
+                </div>
+            )}
+
             {/* Default Star */}
             <button
                 onClick={onSetDefault}

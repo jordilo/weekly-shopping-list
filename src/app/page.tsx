@@ -16,6 +16,7 @@ export default function Home() {
     deleteItem,
     updateItem,
     clearCompleted,
+    reorderItems,
     isLoaded,
   } = useShoppingList();
 
@@ -40,6 +41,7 @@ export default function Home() {
             onDelete={deleteItem}
             onUpdateItem={updateItem}
             onClearCompleted={clearCompleted}
+            onReorder={reorderItems}
           />
         </div>
       </div>

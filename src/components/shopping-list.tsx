@@ -1,5 +1,22 @@
 import { ShoppingItem, Category } from '@/lib/hooks/use-shopping-list';
-import { Trash2, CheckCircle, Circle, Edit2 } from 'lucide-react';
+import { Trash2, CheckCircle, Circle, Edit2, GripVertical } from 'lucide-react';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+    useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { 
     Modal, 
     ModalContent, 
@@ -24,13 +41,14 @@ interface ShoppingListProps {
     onDelete: (id: string) => void;
     onUpdateItem: (id: string, updates: Partial<ShoppingItem>) => void;
     onClearCompleted: () => void;
+    onReorder: (newOrderedItems: ShoppingItem[]) => void;
 }
 
 const DEFAULT_CATEGORIES = [
     'Produce', 'Dairy', 'Meat', 'Bakery', 'Pantry', 'Frozen', 'Beverages', 'Household', 'Other'
 ];
 
-export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateItem, onClearCompleted }: ShoppingListProps) {
+export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateItem, onClearCompleted, onReorder }: ShoppingListProps) {
     const { isOpen, onOpen, onOpenChange } = useDisclosure();
     const [selectedItem, setSelectedItem] = useState<ShoppingItem | null>(null);
     const searchParams = useSearchParams();
@@ -54,6 +72,17 @@ export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateIt
         setSelectedItem(item);
         onOpen();
     };
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     if (items.length === 0) {
         return (
@@ -98,31 +127,67 @@ export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateIt
         sortedCategories.push('Uncategorized');
     }
 
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        // Find which category the active item belongs to
+        const category = Object.keys(groupedItems).find(cat => 
+            groupedItems[cat].some(item => item.id === active.id)
+        );
+        
+        if (!category) return;
+        const categoryItems = groupedItems[category];
+
+        const oldIndex = categoryItems.findIndex((item) => item.id === active.id);
+        const newIndex = categoryItems.findIndex((item) => item.id === over.id);
+
+        if (oldIndex !== -1 && newIndex !== -1) {
+            const reordered = arrayMove(categoryItems, oldIndex, newIndex);
+            onReorder(reordered);
+        }
+    };
+
     return (
         <div id="shopping-list-main" className="space-y-6 w-full">
-            <div className="space-y-6">
-                {sortedCategories.map((category) => {
-                    const groupItems = groupedItems[category];
-                    if (!groupItems || groupItems.length === 0) return null;
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+            >
+                <div className="space-y-6">
+                    {sortedCategories.map((category) => {
+                        const groupItems = groupedItems[category];
+                        if (!groupItems || groupItems.length === 0) return null;
 
-                    return (
-                        <div key={category} className="space-y-2">
-                            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider pl-1">
-                                {category}
-                            </h3>
-                            {groupItems.map((item) => (
-                                <ShoppingListItem
-                                    key={item.id}
-                                    item={item}
-                                    isHighlighted={item.id === highlightId}
-                                    onToggle={onToggle}
-                                    onEditClick={() => handleEditClick(item)}
-                                />
-                            ))}
-                        </div>
-                    );
-                })}
-            </div>
+                        return (
+                            <div key={category} className="space-y-2">
+                                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider pl-1">
+                                    {category}
+                                </h3>
+                                <SortableContext
+                                    items={groupItems.map(i => i.id)}
+                                    strategy={verticalListSortingStrategy}
+                                >
+                                    <div className="space-y-2">
+                                        {groupItems.map((item) => (
+                                            <SortableItem
+                                                key={item.id}
+                                                id={item.id}
+                                                item={item}
+                                                isHighlighted={item.id === highlightId}
+                                                onToggle={onToggle}
+                                                onEditClick={() => handleEditClick(item)}
+                                            />
+                                        ))}
+                                    </div>
+                                </SortableContext>
+                            </div>
+                        );
+                    })}
+                </div>
+            </DndContext>
 
             {completedItems.length > 0 && (
                 <div className="space-y-2" data-testid="completed-items-section">
@@ -172,16 +237,45 @@ export function ShoppingList({ items, categories, onToggle, onDelete, onUpdateIt
     );
 }
 
+function SortableItem({ id, ...props }: { id: string; item: ShoppingItem; isHighlighted?: boolean; onToggle: (id: string) => void; onEditClick: () => void; }) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 50 : 0,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style}>
+            <ShoppingListItem
+                {...props}
+                dragHandleProps={{ ...attributes, ...listeners }}
+            />
+        </div>
+    );
+}
+
 function ShoppingListItem({
     item,
     isHighlighted,
     onToggle,
     onEditClick,
+    dragHandleProps,
 }: {
     item: ShoppingItem;
     isHighlighted?: boolean;
     onToggle: (id: string) => void;
     onEditClick: () => void;
+    dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }) {
     const quantity = item.quantity || '1';
     
@@ -193,36 +287,49 @@ function ShoppingListItem({
                 }`}
             onClick={onEditClick}
         >
-            <div className="flex items-center gap-4 flex-1">
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onToggle(item.id);
-                    }}
-                    className={`transition-colors flex-shrink-0 ${item.completed ? 'text-green-500' : 'text-gray-300 hover:text-blue-500'}`}
-                >
-                    {item.completed ? <CheckCircle size={24} /> : <Circle size={24} />}
-                </button>
-                
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 flex-1 min-w-0">
-                    <span
-                        className={`text-base font-semibold truncate ${item.completed
-                            ? 'text-gray-400 line-through decoration-gray-300'
-                            : 'text-gray-900 dark:text-gray-100'
-                            }`}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+                {!item.completed && (
+                    <div 
+                        className="cursor-grab active:cursor-grabbing text-gray-400 p-1 -ml-2 hover:text-blue-500 transition-colors"
+                        {...dragHandleProps}
+                        data-testid={`drag-handle-${item.id}`}
+                        style={{ touchAction: 'none' }}
                     >
-                        {item.name}
-                    </span>
+                        <GripVertical size={20} />
+                    </div>
+                )}
+
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggle(item.id);
+                        }}
+                        className={`transition-colors flex-shrink-0 ${item.completed ? 'text-green-500' : 'text-gray-300 hover:text-blue-500'}`}
+                    >
+                        {item.completed ? <CheckCircle size={24} /> : <Circle size={24} />}
+                    </button>
                     
-                    <div className="flex items-center gap-2">
-                        {item.category && item.category !== 'Uncategorized' && (
-                            <Chip size="sm" variant="flat" color="primary" className="h-5 text-[10px] uppercase font-bold">
-                                {item.category}
-                            </Chip>
-                        )}
-                        <span className="text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
-                            <FormattedMessage id="list.qty" defaultMessage="Qty: {quantity}" values={{ quantity }} />
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 flex-1 min-w-0">
+                        <span
+                            className={`text-base font-semibold truncate ${item.completed
+                                ? 'text-gray-400 line-through decoration-gray-300'
+                                : 'text-gray-900 dark:text-gray-100'
+                                }`}
+                        >
+                            {item.name}
                         </span>
+                        
+                        <div className="flex items-center gap-2">
+                            {item.category && item.category !== 'Uncategorized' && (
+                                <Chip size="sm" variant="flat" color="primary" className="h-5 text-[10px] uppercase font-bold">
+                                    {item.category}
+                                </Chip>
+                            )}
+                            <span className="text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+                                <FormattedMessage id="list.qty" defaultMessage="Qty: {quantity}" values={{ quantity }} />
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
